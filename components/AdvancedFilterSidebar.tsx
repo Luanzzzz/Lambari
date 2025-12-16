@@ -93,8 +93,20 @@ const FILTER_SYSTEM = {
   }
 };
 
+type FilterKey = 'season' | 'brand' | 'gender' | 'category' | 'sizes' | 'colors';
+
+interface SelectedFilters {
+  season: string[];
+  brand: string[];
+  gender: string[];
+  category: string[];
+  sizes: string[];
+  colors: string[];
+  priceRange: { min: number; max: number };
+}
+
 export const AdvancedFilterSidebar: React.FC<AdvancedFilterSidebarProps> = ({ onFilterChange, totalProducts }) => {
-  const [selectedFilters, setSelectedFilters] = useState<any>({
+  const [selectedFilters, setSelectedFilters] = useState<SelectedFilters>({
     season: [],
     brand: [],
     gender: [],
@@ -120,24 +132,24 @@ export const AdvancedFilterSidebar: React.FC<AdvancedFilterSidebarProps> = ({ on
       onFilterChange(selectedFilters);
     }, 300);
     return () => clearTimeout(timeout);
-  }, [selectedFilters]);
+  }, [selectedFilters, onFilterChange]);
 
   const toggleSection = (key: string) => {
     setExpandedSections(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
-  const handleFilterToggle = (key: string, value: string) => {
-    setSelectedFilters((prev: any) => {
+  const handleFilterToggle = (key: keyof Omit<SelectedFilters, 'priceRange'>, value: string) => {
+    setSelectedFilters((prev) => {
       const current = prev[key] || [];
       const updated = current.includes(value)
-        ? current.filter((v: string) => v !== value)
+        ? current.filter((v) => v !== value)
         : [...current, value];
       return { ...prev, [key]: updated };
     });
   };
 
   const handlePriceChange = (min: number, max: number) => {
-    setSelectedFilters((prev: any) => ({
+    setSelectedFilters((prev) => ({
       ...prev,
       priceRange: { min, max }
     }));
@@ -204,7 +216,7 @@ export const AdvancedFilterSidebar: React.FC<AdvancedFilterSidebarProps> = ({ on
                     {config.options.map(opt => (
                       <button
                         key={opt.value}
-                        onClick={() => handleFilterToggle(config.key, opt.value)}
+                        onClick={() => handleFilterToggle(config.key as FilterKey, opt.value)}
                         className={`flex flex-col items-center gap-1 group p-1 rounded transition-colors ${selectedFilters.colors.includes(opt.value) ? 'bg-gray-50' : ''}`}
                         title={opt.label}
                       >
@@ -242,7 +254,7 @@ export const AdvancedFilterSidebar: React.FC<AdvancedFilterSidebarProps> = ({ on
                     {config.options.map(opt => (
                       <button
                         key={opt.value}
-                        onClick={() => handleFilterToggle(config.key, opt.value)}
+                        onClick={() => handleFilterToggle(config.key as FilterKey, opt.value)}
                         className={`py-2 rounded border text-xs font-bold transition-all
                                ${selectedFilters.sizes.includes(opt.value)
                             ? 'bg-primary text-white border-primary shadow-sm'
@@ -279,11 +291,11 @@ export const AdvancedFilterSidebar: React.FC<AdvancedFilterSidebarProps> = ({ on
               {expandedSections[config.key] && (
                 <div className="px-4 pb-4 space-y-1 animate-[slideDown_0.2s_ease-out]">
                   {config.options.map(opt => {
-                    const isSelected = selectedFilters[config.key]?.includes(opt.value);
+                    const isSelected = selectedFilters[config.key as FilterKey]?.includes(opt.value);
                     return (
                       <label
                         key={opt.value}
-                        onClick={() => handleFilterToggle(config.key, opt.value)}
+                        onClick={() => handleFilterToggle(config.key as FilterKey, opt.value)}
                         className="flex items-center gap-3 cursor-pointer group hover:bg-blue-50/50 p-2 rounded transition-colors"
                       >
                         <div className={`w-5 h-5 rounded border flex items-center justify-center transition-all duration-200
