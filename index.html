@@ -1,0 +1,92 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Lambari Kids | Atacado Infantil</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              primary: {
+                DEFAULT: '#003366',
+                light: '#004080',
+                dark: '#002244',
+              },
+              accent: {
+                DEFAULT: '#FFD700',
+                light: '#FFED4E',
+                dark: '#E6C200',
+              },
+              background: {
+                DEFAULT: '#FFFFFF',
+                secondary: '#F5F5F5',
+              },
+              text: {
+                primary: '#333333',
+                secondary: '#666666',
+                light: '#999999',
+              },
+              border: {
+                DEFAULT: '#E0E0E0',
+                focus: '#003366',
+              }
+            },
+            fontFamily: {
+              sans: ['Inter', 'sans-serif'],
+            },
+            boxShadow: {
+              'sm': '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+              'DEFAULT': '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
+              'md': '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+            },
+          }
+        }
+      }
+    </script>
+    <style>
+      /* Custom scrollbar for minimalist feel */
+      ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+      }
+      ::-webkit-scrollbar-track {
+        background: #f1f1f1;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #ccc;
+        border-radius: 4px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #003366;
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@18.2.0",
+    "react/": "https://esm.sh/react@18.2.0/",
+    "react-dom": "https://esm.sh/react-dom@18.2.0",
+    "react-dom/": "https://esm.sh/react-dom@18.2.0/",
+    "react/jsx-runtime": "https://esm.sh/react@18.2.0/jsx-runtime",
+    "react-router": "https://esm.sh/react-router@6.22.3?external=react,react-dom",
+    "react-router-dom": "https://esm.sh/react-router-dom@6.22.3?external=react,react-dom",
+    "recharts": "https://esm.sh/recharts@2.12.2?external=react,react-dom",
+    "lucide-react": "https://esm.sh/lucide-react@0.344.0?external=react,react-dom",
+    "react-hot-toast": "https://esm.sh/react-hot-toast@2.4.1?external=react,react-dom",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.1/package/xlsx.mjs",
+    "exceljs": "https://esm.sh/exceljs@4.4.0",
+    "file-saver": "https://esm.sh/file-saver@2.0.5"
+  }
+}
+</script>
+</head>
+  <body class="bg-background-secondary text-text-primary antialiased">
+    <div id="root"></div>
+    <script type="module" src="./index.tsx"></script>
+  </body>
+</html>
