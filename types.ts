@@ -21,7 +21,7 @@ export interface Product {
   sku: string;
   brand: string;
   gender: GenderType;
-  categoryId: string;
+  category: string;
   subcategory?: string;
 
   price: number;

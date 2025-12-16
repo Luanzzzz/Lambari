@@ -1,5 +1,58 @@
-import { Product, Category, Kit, DashboardStats, StockMovement, BulkImportReport, Brand, ImportValidationResult, GenderType, SeasonType, AgeRangeType, AvailabilityType } from '../types';
-import { supabase } from './supabase';
+import { Product, Category, Kit, DashboardStats, StockMovement, BulkImportReport, Brand, ImportValidationResult, GenderType } from '../types';
+import { INITIAL_BRANDS, INITIAL_CATEGORIES, INITIAL_PRODUCTS, INITIAL_KITS, INITIAL_STOCK_HISTORY } from './mockData';
+
+// ============================================
+// LOCAL STORAGE API - NO SUPABASE
+// ============================================
+
+const STORAGE_KEYS = {
+  PRODUCTS: 'lambari_products',
+  BRANDS: 'lambari_brands',
+  CATEGORIES: 'lambari_categories',
+  KITS: 'lambari_kits',
+  STOCK_HISTORY: 'lambari_stock_history',
+};
+
+// Simulate network delay for realistic UI behavior
+const delay = (ms: number = 300) => new Promise(resolve => setTimeout(resolve, ms));
+
+// Initialize localStorage with mock data on first load
+const initializeStorage = () => {
+  if (!localStorage.getItem(STORAGE_KEYS.PRODUCTS)) {
+    localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(INITIAL_PRODUCTS));
+  }
+  if (!localStorage.getItem(STORAGE_KEYS.BRANDS)) {
+    localStorage.setItem(STORAGE_KEYS.BRANDS, JSON.stringify(INITIAL_BRANDS));
+  }
+  if (!localStorage.getItem(STORAGE_KEYS.CATEGORIES)) {
+    localStorage.setItem(STORAGE_KEYS.CATEGORIES, JSON.stringify(INITIAL_CATEGORIES));
+  }
+  if (!localStorage.getItem(STORAGE_KEYS.KITS)) {
+    localStorage.setItem(STORAGE_KEYS.KITS, JSON.stringify(INITIAL_KITS));
+  }
+  if (!localStorage.getItem(STORAGE_KEYS.STOCK_HISTORY)) {
+    localStorage.setItem(STORAGE_KEYS.STOCK_HISTORY, JSON.stringify(INITIAL_STOCK_HISTORY));
+  }
+};
+
+// Initialize on module load
+initializeStorage();
+
+// Helper: Generate simple ID
+const generateId = (): string => {
+  return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+};
+
+// Helper: Save to localStorage
+const saveToStorage = <T>(key: string, data: T[]): void => {
+  localStorage.setItem(key, JSON.stringify(data));
+};
+
+// Helper: Get from localStorage
+const getFromStorage = <T>(key: string): T[] => {
+  const data = localStorage.getItem(key);
+  return data ? JSON.parse(data) : [];
+};
 
 // Local helper to save files without external dependencies
 const saveAs = (blob: Blob, fileName: string) => {
@@ -13,311 +66,61 @@ const saveAs = (blob: Blob, fileName: string) => {
   window.URL.revokeObjectURL(url);
 };
 
-// UUID v4 generator
-const generateUUID = (): string => {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-    const r = Math.random() * 16 | 0;
-    const v = c === 'x' ? r : (r & 0x3 | 0x8);
-    return v.toString(16);
-  });
-};
-
-export interface KitFilters {
-  season?: SeasonType[];
-  brand?: string[];
-  gender?: GenderType[];
-  category?: string[];
-  ageRange?: AgeRangeType[];
-  sizes?: string[];
-  colors?: string[];
-  priceRange?: { min: number; max: number };
-  minQuantity?: number;
-  material?: string[];
-  style?: string[];
-  availability?: AvailabilityType[];
-  search?: string;
-}
-
-// === Data Mapping Helpers ===
-
-// DB Schema: id, name, category_id, subcategory, price, cost_price, promo_price, stock(int), images(text[]), brand, gender, sku
-
-// Map database row (snake_case) to Product (camelCase)
-function mapDbToProduct(row: Record<string, unknown>): Product {
-  // DB has stock as INTEGER, but frontend expects Record<string, number>
-  // Convert integer stock to a single size entry for compatibility
-  const stockVal = (row.stock as number) || 0;
-  const stockObj: Record<string, number> = stockVal > 0 ? { 'Único': stockVal } : {};
-
-  return {
-    id: (row.id as string) || '',
-    name: (row.name as string) || '',
-    description: (row.description as string) || '',
-    sku: (row.sku as string) || '',
-    brand: (row.brand as string) || '',
-    gender: (row.gender as GenderType) || 'unisex',
-    categoryId: (row.category_id as string) || '',
-    subcategory: (row.subcategory as string) || '',
-    price: (row.price as number) || 0,
-    costPrice: (row.cost_price as number) || 0,
-    promoPrice: (row.promo_price as number) || undefined,
-    isPromo: (row.is_promo as boolean) || false,
-    images: (row.images as string[]) || [],
-    colors: [],
-    stock: stockObj,
-    inStock: stockVal > 0,
-    active: true,
-    featured: false,
-    createdAt: new Date().toISOString(),
-  };
-}
-
-// Map Product (camelCase) to database row (snake_case)
-// CRITICAL: DB has stock as INTEGER - we sum all sizes
-function mapProductToDb(product: Partial<Product> & { category?: string }): Record<string, unknown> {
-  const dbRow: Record<string, unknown> = {};
-
-  if (product.id !== undefined) dbRow.id = product.id;
-  if (product.name !== undefined) dbRow.name = product.name;
-  if (product.description !== undefined) dbRow.description = product.description;
-  if (product.sku !== undefined) dbRow.sku = product.sku;
-  if (product.brand !== undefined) dbRow.brand = product.brand;
-  if (product.gender !== undefined) dbRow.gender = product.gender;
-
-  // Handle categoryId -> category_id
-  if (product.categoryId !== undefined) {
-    dbRow.category_id = product.categoryId;
-  } else if (product.category !== undefined) {
-    dbRow.category_id = product.category;
-  }
-
-  if (product.subcategory !== undefined) dbRow.subcategory = product.subcategory;
-  if (product.price !== undefined) dbRow.price = product.price;
-  if (product.costPrice !== undefined) dbRow.cost_price = product.costPrice;
-  if (product.promoPrice !== undefined) dbRow.promo_price = product.promoPrice;
-  if (product.isPromo !== undefined) dbRow.is_promo = product.isPromo;
-  if (product.images !== undefined) dbRow.images = product.images;
-
-  // CRITICAL: Convert stock object to integer sum
-  if (product.stock !== undefined) {
-    const stockSum = Object.values(product.stock).reduce((a, b) => a + (b || 0), 0);
-    dbRow.stock = stockSum;
-  }
-
-  return dbRow;
-}
-
-// Map database row to Brand
-function mapDbToBrand(row: Record<string, unknown>): Brand {
-  return {
-    id: row.id as string,
-    name: row.name as string,
-    slug: row.slug as string,
-    color: row.color as string,
-    textColor: row.text_color as string,
-    active: row.active as boolean,
-    order: row.order as number,
-  };
-}
-
-// Map Brand to database row
-function mapBrandToDb(brand: Partial<Brand>): Record<string, unknown> {
-  const dbRow: Record<string, unknown> = {};
-  if (brand.id !== undefined) dbRow.id = brand.id;
-  if (brand.name !== undefined) dbRow.name = brand.name;
-  if (brand.slug !== undefined) dbRow.slug = brand.slug;
-  if (brand.color !== undefined) dbRow.color = brand.color;
-  if (brand.textColor !== undefined) dbRow.text_color = brand.textColor;
-  if (brand.active !== undefined) dbRow.active = brand.active;
-  if (brand.order !== undefined) dbRow.order = brand.order;
-  return dbRow;
-}
-
-// Map database row to Kit
-function mapDbToKit(row: Record<string, unknown>): Kit {
-  return {
-    id: row.id as string,
-    name: row.name as string,
-    description: row.description as string,
-    price: row.price as number,
-    items: row.items as Kit['items'],
-    totalPieces: row.total_pieces as number,
-    images: row.images as string[],
-    videos: row.videos as string[],
-    brand: row.brand as string,
-    gender: row.gender as GenderType,
-    season: row.season as SeasonType | undefined,
-    ageRange: row.age_range as AgeRangeType | undefined,
-    style: row.style as string[] | undefined,
-    category: row.category as string | undefined,
-    minQuantity: row.min_quantity as number | undefined,
-    availability: row.availability as AvailabilityType | undefined,
-    sizesAvailable: row.sizes_available as string[],
-    colors: row.colors as string[],
-    material: row.material as string,
-    active: row.active as boolean,
-    createdAt: row.created_at as string,
-  };
-}
-
-// Map Kit to database row
-function mapKitToDb(kit: Partial<Kit>): Record<string, unknown> {
-  const dbRow: Record<string, unknown> = {};
-  if (kit.id !== undefined) dbRow.id = kit.id;
-  if (kit.name !== undefined) dbRow.name = kit.name;
-  if (kit.description !== undefined) dbRow.description = kit.description;
-  if (kit.price !== undefined) dbRow.price = kit.price;
-  if (kit.items !== undefined) dbRow.items = kit.items;
-  if (kit.totalPieces !== undefined) dbRow.total_pieces = kit.totalPieces;
-  if (kit.images !== undefined) dbRow.images = kit.images;
-  if (kit.videos !== undefined) dbRow.videos = kit.videos;
-  if (kit.brand !== undefined) dbRow.brand = kit.brand;
-  if (kit.gender !== undefined) dbRow.gender = kit.gender;
-  if (kit.season !== undefined) dbRow.season = kit.season;
-  if (kit.ageRange !== undefined) dbRow.age_range = kit.ageRange;
-  if (kit.style !== undefined) dbRow.style = kit.style;
-  if (kit.category !== undefined) dbRow.category = kit.category;
-  if (kit.minQuantity !== undefined) dbRow.min_quantity = kit.minQuantity;
-  if (kit.availability !== undefined) dbRow.availability = kit.availability;
-  if (kit.sizesAvailable !== undefined) dbRow.sizes_available = kit.sizesAvailable;
-  if (kit.colors !== undefined) dbRow.colors = kit.colors;
-  if (kit.material !== undefined) dbRow.material = kit.material;
-  if (kit.active !== undefined) dbRow.active = kit.active;
-  if (kit.createdAt !== undefined) dbRow.created_at = kit.createdAt;
-  return dbRow;
-}
-
-// Map database row to Category
-function mapDbToCategory(row: Record<string, unknown>): Category {
-  return {
-    id: row.id as string,
-    name: row.name as string,
-    slug: row.slug as string,
-    type: row.type as Category['type'],
-    icon: row.icon as string | undefined,
-    color: row.color as string | undefined,
-    description: row.description as string | undefined,
-    active: row.active as boolean | undefined,
-    order: row.order as number | undefined,
-    productCount: row.product_count as number | undefined,
-    parent: row.parent as string | null | undefined,
-    subcategories: row.subcategories as string[] | undefined,
-  };
-}
-
-// Map Category to database row
-function mapCategoryToDb(category: Partial<Category>): Record<string, unknown> {
-  const dbRow: Record<string, unknown> = {};
-  if (category.id !== undefined) dbRow.id = category.id;
-  if (category.name !== undefined) dbRow.name = category.name;
-  if (category.slug !== undefined) dbRow.slug = category.slug;
-  if (category.type !== undefined) dbRow.type = category.type;
-  if (category.icon !== undefined) dbRow.icon = category.icon;
-  if (category.color !== undefined) dbRow.color = category.color;
-  if (category.description !== undefined) dbRow.description = category.description;
-  if (category.active !== undefined) dbRow.active = category.active;
-  if (category.order !== undefined) dbRow.order = category.order;
-  if (category.productCount !== undefined) dbRow.product_count = category.productCount;
-  if (category.parent !== undefined) dbRow.parent = category.parent;
-  return dbRow;
-}
-
-// Map database row to StockMovement
-function mapDbToStockMovement(row: Record<string, unknown>): StockMovement {
-  return {
-    id: row.id as string,
-    productId: row.product_id as string,
-    productName: row.product_name as string,
-    size: row.size as string,
-    quantity: row.quantity as number,
-    type: row.type as StockMovement['type'],
-    user: row.user as string,
-    date: row.date as string,
-  };
-}
+// ============================================
+// API SERVICE CLASS
+// ============================================
 
 class ApiService {
   // === BRANDS ===
   async getBrands(): Promise<Brand[]> {
-    const { data, error } = await supabase
-      .from('brands')
-      .select('*')
-      .order('order', { ascending: true });
-
-    if (error) {
-      console.error('Error fetching brands:', error);
-      return [];
-    }
-
-    return (data || []).map(row => mapDbToBrand(row as Record<string, unknown>));
+    await delay();
+    return getFromStorage<Brand>(STORAGE_KEYS.BRANDS);
   }
 
   async createBrand(brandData: Omit<Brand, 'id' | 'slug'>): Promise<Brand> {
+    await delay();
     const slug = brandData.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
     const newBrand: Brand = {
       ...brandData,
-      id: slug,
+      id: generateId(),
       slug,
     };
 
-    const { data, error } = await supabase
-      .from('brands')
-      .insert(mapBrandToDb(newBrand))
-      .select()
-      .single();
+    const brands = getFromStorage<Brand>(STORAGE_KEYS.BRANDS);
+    brands.push(newBrand);
+    saveToStorage(STORAGE_KEYS.BRANDS, brands);
 
-    if (error) {
-      console.error('Error creating brand:', error);
-      throw new Error('Failed to create brand');
-    }
-
-    return mapDbToBrand(data as Record<string, unknown>);
+    return newBrand;
   }
 
   async updateBrand(id: string, updates: Partial<Brand>): Promise<Brand> {
-    const { data, error } = await supabase
-      .from('brands')
-      .update(mapBrandToDb(updates))
-      .eq('id', id)
-      .select()
-      .single();
+    await delay();
+    const brands = getFromStorage<Brand>(STORAGE_KEYS.BRANDS);
+    const index = brands.findIndex(b => b.id === id);
 
-    if (error) {
-      console.error('Error updating brand:', error);
-      throw new Error('Brand not found');
-    }
+    if (index === -1) throw new Error('Brand not found');
 
-    return mapDbToBrand(data as Record<string, unknown>);
+    brands[index] = { ...brands[index], ...updates };
+    saveToStorage(STORAGE_KEYS.BRANDS, brands);
+
+    return brands[index];
   }
 
   async deleteBrand(id: string): Promise<void> {
-    const { error } = await supabase
-      .from('brands')
-      .delete()
-      .eq('id', id);
-
-    if (error) {
-      console.error('Error deleting brand:', error);
-      throw new Error('Failed to delete brand');
-    }
+    await delay();
+    const brands = getFromStorage<Brand>(STORAGE_KEYS.BRANDS);
+    const filtered = brands.filter(b => b.id !== id);
+    saveToStorage(STORAGE_KEYS.BRANDS, filtered);
   }
 
   // === CATEGORIES ===
   async getCategories(): Promise<Category[]> {
-    const { data, error } = await supabase
-      .from('categories')
-      .select('*')
-      .order('order', { ascending: true });
-
-    if (error) {
-      console.error('Error fetching categories:', error);
-      return [];
-    }
-
-    return (data || []).map(row => mapDbToCategory(row as Record<string, unknown>));
+    await delay();
+    return getFromStorage<Category>(STORAGE_KEYS.CATEGORIES);
   }
 
   async createCategory(categoryData: Omit<Category, 'id'>): Promise<Category> {
+    await delay();
     const slug = categoryData.name.toLowerCase()
       .normalize('NFD')
       .replace(/[\u0300-\u036f]/g, '')
@@ -326,191 +129,99 @@ class ApiService {
 
     const newCategory: Category = {
       ...categoryData,
-      id: `cat-${generateUUID().slice(0, 8)}`,
+      id: generateId(),
       slug,
     };
 
-    const { data, error } = await supabase
-      .from('categories')
-      .insert(mapCategoryToDb(newCategory))
-      .select()
-      .single();
+    const categories = getFromStorage<Category>(STORAGE_KEYS.CATEGORIES);
+    categories.push(newCategory);
+    saveToStorage(STORAGE_KEYS.CATEGORIES, categories);
 
-    if (error) {
-      console.error('Error creating category:', error);
-      throw new Error('Failed to create category');
-    }
-
-    return mapDbToCategory(data as Record<string, unknown>);
+    return newCategory;
   }
 
   async updateCategory(id: string, updates: Partial<Category>): Promise<Category> {
-    const { data, error } = await supabase
-      .from('categories')
-      .update(mapCategoryToDb(updates))
-      .eq('id', id)
-      .select()
-      .single();
+    await delay();
+    const categories = getFromStorage<Category>(STORAGE_KEYS.CATEGORIES);
+    const index = categories.findIndex(c => c.id === id);
 
-    if (error) {
-      console.error('Error updating category:', error);
-      throw new Error('Category not found');
-    }
+    if (index === -1) throw new Error('Category not found');
 
-    return mapDbToCategory(data as Record<string, unknown>);
+    categories[index] = { ...categories[index], ...updates };
+    saveToStorage(STORAGE_KEYS.CATEGORIES, categories);
+
+    return categories[index];
   }
 
   async deleteCategory(id: string): Promise<void> {
-    const { error } = await supabase
-      .from('categories')
-      .delete()
-      .eq('id', id);
-
-    if (error) {
-      console.error('Error deleting category:', error);
-      throw new Error('Failed to delete category');
-    }
+    await delay();
+    const categories = getFromStorage<Category>(STORAGE_KEYS.CATEGORIES);
+    const filtered = categories.filter(c => c.id !== id);
+    saveToStorage(STORAGE_KEYS.CATEGORIES, filtered);
   }
 
   // === KITS ===
-  async getKits(filters?: KitFilters): Promise<Kit[]> {
-    const { data, error } = await supabase
-      .from('kits')
-      .select('*');
-
-    if (error) {
-      console.error('Error fetching kits:', error);
-      return [];
-    }
-
-    let filtered = (data || []).map(row => mapDbToKit(row as Record<string, unknown>));
-
-    // Apply client-side filtering
-    if (filters?.search) {
-      const term = filters.search.toLowerCase();
-      filtered = filtered.filter(k => k.name.toLowerCase().includes(term));
-    }
-
-    if (filters?.brand && filters.brand.length > 0) {
-      filtered = filtered.filter(k => filters.brand?.includes(k.brand));
-    }
-    if (filters?.gender && filters.gender.length > 0) {
-      filtered = filtered.filter(k => filters.gender?.includes(k.gender));
-    }
-    if (filters?.season && filters.season.length > 0) {
-      filtered = filtered.filter(k => k.season && filters.season?.includes(k.season));
-    }
-    if (filters?.category && filters.category.length > 0) {
-      filtered = filtered.filter(k => k.category && filters.category?.includes(k.category));
-    }
-    if (filters?.ageRange && filters.ageRange.length > 0) {
-      filtered = filtered.filter(k => k.ageRange && filters.ageRange?.includes(k.ageRange));
-    }
-    if (filters?.material && filters.material.length > 0) {
-      filtered = filtered.filter(k => k.material && filters.material?.includes(k.material));
-    }
-    if (filters?.availability && filters.availability.length > 0) {
-      filtered = filtered.filter(k => k.availability && filters.availability?.includes(k.availability));
-    }
-
-    if (filters?.sizes && filters.sizes.length > 0) {
-      filtered = filtered.filter(k => k.sizesAvailable.some(s => filters.sizes?.includes(s.toLowerCase()) || filters.sizes?.includes(s)));
-    }
-    if (filters?.colors && filters.colors.length > 0) {
-      filtered = filtered.filter(k => k.colors.some(c => filters.colors?.some(fc => c.toLowerCase().includes(fc.toLowerCase()))));
-    }
-    if (filters?.style && filters.style.length > 0) {
-      filtered = filtered.filter(k => k.style?.some(s => filters.style?.includes(s)));
-    }
-
-    if (filters?.priceRange) {
-      filtered = filtered.filter(k => k.price >= filters.priceRange!.min && k.price <= filters.priceRange!.max);
-    }
-    if (filters?.minQuantity) {
-      filtered = filtered.filter(k => (k.minQuantity || 5) >= filters.minQuantity!);
-    }
-
-    return filtered;
+  async getKits(): Promise<Kit[]> {
+    await delay();
+    return getFromStorage<Kit>(STORAGE_KEYS.KITS);
   }
 
   async createKit(kit: Omit<Kit, 'id' | 'createdAt'>): Promise<Kit> {
+    await delay();
     const newKit: Kit = {
       ...kit,
-      id: generateUUID(),
+      id: generateId(),
       createdAt: new Date().toISOString(),
     };
 
-    const { data, error } = await supabase
-      .from('kits')
-      .insert(mapKitToDb(newKit))
-      .select()
-      .single();
+    const kits = getFromStorage<Kit>(STORAGE_KEYS.KITS);
+    kits.push(newKit);
+    saveToStorage(STORAGE_KEYS.KITS, kits);
 
-    if (error) {
-      console.error('Error creating kit:', error);
-      throw new Error('Failed to create kit');
-    }
-
-    return mapDbToKit(data as Record<string, unknown>);
+    return newKit;
   }
 
   // === PRODUCTS ===
   async getProducts(): Promise<Product[]> {
-    const { data, error } = await supabase
-      .from('products')
-      .select('*');
-
-    if (error) {
-      console.error('Error fetching products:', error);
-      return [];
-    }
-
-    return (data || []).map(row => mapDbToProduct(row as Record<string, unknown>));
+    await delay();
+    return getFromStorage<Product>(STORAGE_KEYS.PRODUCTS);
   }
 
   async createProduct(product: Omit<Product, 'id' | 'createdAt' | 'inStock'>): Promise<Product> {
+    await delay();
     const totalStock = Object.values(product.stock).reduce((a, b) => a + b, 0);
+
     const newProduct: Product = {
       ...product,
-      id: generateUUID(),
+      id: generateId(),
       inStock: totalStock > 0,
       createdAt: new Date().toISOString(),
     };
 
-    const { data, error } = await supabase
-      .from('products')
-      .insert(mapProductToDb(newProduct))
-      .select()
-      .single();
+    const products = getFromStorage<Product>(STORAGE_KEYS.PRODUCTS);
+    products.push(newProduct);
+    saveToStorage(STORAGE_KEYS.PRODUCTS, products);
 
-    if (error) {
-      console.error('Error creating product:', error);
-      throw new Error('Failed to create product');
-    }
-
-    return mapDbToProduct(data as Record<string, unknown>);
+    return newProduct;
   }
 
   async updateProduct(id: string, updates: Partial<Product>): Promise<Product> {
+    await delay();
+    const products = getFromStorage<Product>(STORAGE_KEYS.PRODUCTS);
+    const index = products.findIndex(p => p.id === id);
+
+    if (index === -1) throw new Error('Product not found');
+
     // If stock is being updated, recalculate inStock
     if (updates.stock) {
       const total = Object.values(updates.stock).reduce((a, b) => a + b, 0);
       updates.inStock = total > 0;
     }
 
-    const { data, error } = await supabase
-      .from('products')
-      .update(mapProductToDb(updates))
-      .eq('id', id)
-      .select()
-      .single();
+    products[index] = { ...products[index], ...updates };
+    saveToStorage(STORAGE_KEYS.PRODUCTS, products);
 
-    if (error) {
-      console.error('Error updating product:', error);
-      throw new Error('Product not found');
-    }
-
-    return mapDbToProduct(data as Record<string, unknown>);
+    return products[index];
   }
 
   async patchProduct<K extends keyof Product>(id: string, field: K, value: Product[K]): Promise<Product> {
@@ -519,93 +230,65 @@ class ApiService {
   }
 
   async updateProductStock(id: string, size: string, quantity: number): Promise<Product> {
-    // First, get the current product
-    const { data: currentData, error: fetchError } = await supabase
-      .from('products')
-      .select('*')
-      .eq('id', id)
-      .single();
+    await delay();
+    const products = getFromStorage<Product>(STORAGE_KEYS.PRODUCTS);
+    const index = products.findIndex(p => p.id === id);
 
-    if (fetchError || !currentData) {
-      console.error('Error fetching product for stock update:', fetchError);
-      throw new Error('Product not found');
-    }
+    if (index === -1) throw new Error('Product not found');
 
-    const currentProduct = mapDbToProduct(currentData as Record<string, unknown>);
+    const product = products[index];
     const newStock = {
-      ...currentProduct.stock,
+      ...product.stock,
       [size]: quantity,
     };
-    // DB expects stock as INTEGER - sum all sizes
+
     const totalStock = Object.values(newStock).reduce((a, b) => a + b, 0);
 
-    // Update the product with integer stock
-    const { data, error } = await supabase
-      .from('products')
-      .update({ stock: totalStock })
-      .eq('id', id)
-      .select()
-      .single();
+    products[index] = {
+      ...product,
+      stock: newStock,
+      inStock: totalStock > 0,
+    };
 
-    if (error) {
-      console.error('Error updating product stock:', error);
-      throw new Error('Failed to update stock');
-    }
+    saveToStorage(STORAGE_KEYS.PRODUCTS, products);
 
-    // Log stock movement (optional - may fail if table doesn't exist)
+    // Log stock movement
     try {
-      const stockMovement = {
-        id: generateUUID(),
-        product_id: id,
-        product_name: currentProduct.name,
+      const stockHistory = getFromStorage<StockMovement>(STORAGE_KEYS.STOCK_HISTORY);
+      const stockMovement: StockMovement = {
+        id: generateId(),
+        productId: id,
+        productName: product.name,
         size,
-        quantity: quantity - (currentProduct.stock[size] || 0),
+        quantity: quantity - (product.stock[size] || 0),
         type: 'adjustment',
         user: 'Admin',
         date: new Date().toISOString(),
       };
-      await supabase.from('stock_history').insert(stockMovement);
+      stockHistory.push(stockMovement);
+      saveToStorage(STORAGE_KEYS.STOCK_HISTORY, stockHistory);
     } catch (e) {
       console.warn('Could not log stock movement:', e);
     }
 
-    return mapDbToProduct(data as Record<string, unknown>);
-  }
-
-  // Database Cleanup - delete all products
-  async clearAllProducts(): Promise<void> {
-    const { error } = await supabase
-      .from('products')
-      .delete()
-      .neq('id', '');
-    if (error) {
-      console.error('Error clearing products:', error);
-      throw new Error('Failed to clear products');
-    }
-    console.log('All products deleted successfully');
+    return products[index];
   }
 
   async deleteProduct(id: string): Promise<void> {
-    const { error } = await supabase
-      .from('products')
-      .delete()
-      .eq('id', id);
-
-    if (error) {
-      console.error('Error deleting product:', error);
-      throw new Error('Failed to delete product');
-    }
+    await delay();
+    const products = getFromStorage<Product>(STORAGE_KEYS.PRODUCTS);
+    const filtered = products.filter(p => p.id !== id);
+    saveToStorage(STORAGE_KEYS.PRODUCTS, filtered);
   }
 
   // === BULK IMPORT ===
   async downloadTemplate(format: 'xlsx' | 'csv'): Promise<void> {
-    // Generate a simple CSV template
     const headers = 'Nome,Preço,Preço de Custo,Marca,Gênero,Categoria,Estoque,SKU,Descrição';
-    const exampleRow = 'Produto Exemplo,99.90,49.90,Marca X,boy,kids,10,SKU-001,Descrição do produto';
+    const exampleRow = 'Produto Exemplo,99.90,49.90,Marca X,boy,Conjuntos,10,SKU-001,Descrição do produto';
     const content = `${headers}\n${exampleRow}`;
 
-    const blob = new Blob([content], { type: format === 'csv' ? 'text/csv;charset=utf-8;' : 'text/csv;charset=utf-8;' });
-    saveAs(blob, `template_importacao.${format === 'xlsx' ? 'csv' : 'csv'}`);
+    const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+    saveAs(blob, `template_importacao.csv`);
   }
 
   async parseAndValidateImport(file: File): Promise<ImportValidationResult[]> {
@@ -622,23 +305,17 @@ class ApiService {
             return;
           }
 
-          // Parse headers (first line)
           const headers = this.parseCSVLine(lines[0]).map(h => h.trim().toLowerCase());
 
-          // Column mapping: Portuguese headers to Product fields
-          const columnMap: Record<string, keyof Product | 'category'> = {
+          const columnMap: Record<string, keyof Product> = {
             'nome': 'name',
             'name': 'name',
             'preço': 'price',
             'preco': 'price',
             'price': 'price',
-            'preço de venda': 'price',
-            'preco de venda': 'price',
             'preço de custo': 'costPrice',
             'preco de custo': 'costPrice',
             'custo': 'costPrice',
-            'cost': 'costPrice',
-            'cost_price': 'costPrice',
             'marca': 'brand',
             'brand': 'brand',
             'gênero': 'gender',
@@ -646,19 +323,15 @@ class ApiService {
             'gender': 'gender',
             'categoria': 'category',
             'category': 'category',
-            'category_id': 'categoryId',
             'estoque': 'stock',
             'stock': 'stock',
             'sku': 'sku',
-            'código': 'sku',
-            'codigo': 'sku',
             'descrição': 'description',
             'descricao': 'description',
             'description': 'description',
           };
 
-          // Map header indices
-          const headerMapping: { index: number; field: keyof Product | 'category' }[] = [];
+          const headerMapping: { index: number; field: keyof Product }[] = [];
           headers.forEach((h, index) => {
             const field = columnMap[h];
             if (field) {
@@ -668,14 +341,12 @@ class ApiService {
 
           const results: ImportValidationResult[] = [];
 
-          // Parse data rows
           for (let i = 1; i < lines.length; i++) {
             const values = this.parseCSVLine(lines[i]);
-            const data: Partial<Product> & { category?: string } = {};
+            const data: Partial<Product> = {};
             const messages: string[] = [];
             let status: 'valid' | 'warning' | 'error' = 'valid';
 
-            // Map values to fields
             headerMapping.forEach(({ index, field }) => {
               const value = values[index]?.trim();
               if (value) {
@@ -684,11 +355,8 @@ class ApiService {
                   case 'sku':
                   case 'brand':
                   case 'description':
-                  case 'categoryId':
-                    (data as any)[field] = value;
-                    break;
                   case 'category':
-                    data.categoryId = value;
+                    (data as any)[field] = value;
                     break;
                   case 'price':
                   case 'costPrice':
@@ -699,10 +367,10 @@ class ApiService {
                     break;
                   case 'gender':
                     const genderMap: Record<string, GenderType> = {
-                      'menino': 'boy', 'boy': 'boy', 'm': 'boy',
-                      'menina': 'girl', 'girl': 'girl', 'f': 'girl',
-                      'unissex': 'unisex', 'unisex': 'unisex', 'u': 'unisex',
-                      'bebê': 'bebe', 'bebe': 'bebe', 'baby': 'bebe', 'b': 'bebe',
+                      'menino': 'boy', 'boy': 'boy',
+                      'menina': 'girl', 'girl': 'girl',
+                      'unissex': 'unisex', 'unisex': 'unisex',
+                      'bebê': 'bebe', 'bebe': 'bebe',
                     };
                     data.gender = genderMap[value.toLowerCase()] || 'unisex';
                     break;
@@ -730,14 +398,14 @@ class ApiService {
             if (!data.stock) data.stock = { 'Único': 0 };
             if (!data.gender) data.gender = 'unisex';
             if (!data.brand) {
-              messages.push('Marca não informada, será vazio');
+              messages.push('Marca não informada');
               if (status === 'valid') status = 'warning';
               data.brand = '';
             }
             if (!data.costPrice) data.costPrice = 0;
             if (!data.description) data.description = '';
             if (!data.sku) data.sku = '';
-            if (!data.categoryId) data.categoryId = '';
+            if (!data.category) data.category = '';
             data.images = [];
             data.colors = [];
             data.isPromo = false;
@@ -765,7 +433,6 @@ class ApiService {
     });
   }
 
-  // Helper to parse CSV line respecting quotes
   private parseCSVLine(line: string): string[] {
     const result: string[] = [];
     let current = '';
@@ -801,7 +468,7 @@ class ApiService {
         console.error('Failed to import product:', item.data.name, err);
         errorCount++;
         item.status = 'error';
-        item.messages.push('Erro ao salvar no banco de dados');
+        item.messages.push('Erro ao salvar');
       }
     }
 
@@ -828,14 +495,15 @@ class ApiService {
 
   // === DASHBOARD ===
   async getDashboardStats(): Promise<DashboardStats> {
-    // Fetch products and kits for stats calculation
-    const [products, kits, categories] = await Promise.all([
-      this.getProducts(),
-      this.getKits(),
-      this.getCategories(),
-    ]);
+    await delay();
+    const products = getFromStorage<Product>(STORAGE_KEYS.PRODUCTS);
+    const kits = getFromStorage<Kit>(STORAGE_KEYS.KITS);
+    const categories = getFromStorage<Category>(STORAGE_KEYS.CATEGORIES);
 
-    const totalStock = products.reduce((acc, p) => acc + Object.values(p.stock).reduce((a, b) => a + (b as number), 0), 0);
+    const totalStock = products.reduce((acc, p) => {
+      return acc + Object.values(p.stock).reduce((a, b) => a + (b as number), 0);
+    }, 0);
+
     const lowStock = products.filter(p => {
       const total = Object.values(p.stock).reduce((a, b) => a + (b as number), 0);
       return total > 0 && total < 10;
@@ -867,7 +535,6 @@ class ApiService {
       outOfStockItems: products.filter(p => !p.inStock).length,
       totalStockCount: totalStock,
       viewsToday: Math.floor(Math.random() * 500) + 100,
-
       totalSales: 25450.00,
       totalProfit: 8230.00,
       averageMargin: 32.4,
@@ -882,17 +549,16 @@ class ApiService {
   }
 
   async getStockHistory(): Promise<StockMovement[]> {
-    const { data, error } = await supabase
-      .from('stock_history')
-      .select('*')
-      .order('date', { ascending: false });
+    await delay();
+    const history = getFromStorage<StockMovement>(STORAGE_KEYS.STOCK_HISTORY);
+    return history.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }
 
-    if (error) {
-      console.error('Error fetching stock history:', error);
-      return [];
-    }
-
-    return (data || []).map(row => mapDbToStockMovement(row as Record<string, unknown>));
+  // === UTILITY ===
+  async clearAllProducts(): Promise<void> {
+    await delay();
+    saveToStorage(STORAGE_KEYS.PRODUCTS, []);
+    console.log('All products deleted from localStorage');
   }
 }
 

@@ -51,9 +51,9 @@ export const ProductForm: React.FC<ProductFormProps> = ({ initialData, onClose, 
     name: '',
     description: '',
     sku: '',
-    brand: 'premium',
+    brand: '',
     gender: 'unisex',
-    categoryId: '1',
+    category: '',
     price: 0,
     costPrice: 0,
     isPromo: false,
@@ -178,7 +178,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({ initialData, onClose, 
       });
 
       setBrands([...brands, newBrand]);
-      setFormData({ ...formData, brand: newBrand.id });
+      setFormData({ ...formData, brand: newBrand.name });
       setShowBrandModal(false);
       setNewBrandName('');
       toast.success("Marca adicionada e selecionada!");
@@ -318,13 +318,13 @@ export const ProductForm: React.FC<ProductFormProps> = ({ initialData, onClose, 
                     {brands.map(b => (
                       <div
                         key={b.id}
-                        onClick={() => setFormData({ ...formData, brand: b.id })}
+                        onClick={() => setFormData({ ...formData, brand: b.name })}
                         className={`border rounded-lg p-4 cursor-pointer transition-all flex items-center justify-between
-                            ${formData.brand === b.id
+                            ${formData.brand === b.name
                             ? 'border-primary bg-blue-50 ring-1 ring-primary'
                             : 'border-gray-200 hover:border-primary/50'}`}
                       >
-                        <span className="font-bold block" style={{ color: formData.brand === b.id ? '#003366' : 'inherit' }}>
+                        <span className="font-bold block" style={{ color: formData.brand === b.name ? '#003366' : 'inherit' }}>
                           {b.name}
                         </span>
                         <div
@@ -369,8 +369,11 @@ export const ProductForm: React.FC<ProductFormProps> = ({ initialData, onClose, 
                     <label className="block text-sm font-medium text-text-secondary mb-1">Categoria *</label>
                     <select
                       className="w-full px-4 py-2 border border-gray-300 rounded outline-none focus:border-primary bg-white"
-                      value={formData.categoryId}
-                      onChange={e => setFormData({ ...formData, categoryId: e.target.value })}
+                      value={categories.find(c => c.name === formData.category)?.id || ''}
+                      onChange={e => {
+                        const selectedCat = categories.find(c => c.id === e.target.value);
+                        setFormData({ ...formData, category: selectedCat?.name || '' });
+                      }}
                     >
                       <option value="">Selecione...</option>
                       {categories.map(cat => (
