@@ -93,8 +93,20 @@ const FILTER_SYSTEM = {
   }
 };
 
+type FilterKey = 'season' | 'brand' | 'gender' | 'category' | 'sizes' | 'colors';
+
+interface SelectedFilters {
+  season: string[];
+  brand: string[];
+  gender: string[];
+  category: string[];
+  sizes: string[];
+  colors: string[];
+  priceRange: { min: number; max: number };
+}
+
 export const AdvancedFilterSidebar: React.FC<AdvancedFilterSidebarProps> = ({ onFilterChange, totalProducts }) => {
-  const [selectedFilters, setSelectedFilters] = useState<any>({
+  const [selectedFilters, setSelectedFilters] = useState<SelectedFilters>({
     season: [],
     brand: [],
     gender: [],
@@ -120,24 +132,24 @@ export const AdvancedFilterSidebar: React.FC<AdvancedFilterSidebarProps> = ({ on
       onFilterChange(selectedFilters);
     }, 300);
     return () => clearTimeout(timeout);
-  }, [selectedFilters]);
+  }, [selectedFilters, onFilterChange]);
 
   const toggleSection = (key: string) => {
     setExpandedSections(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
-  const handleFilterToggle = (key: string, value: string) => {
-    setSelectedFilters((prev: any) => {
+  const handleFilterToggle = (key: keyof Omit<SelectedFilters, 'priceRange'>, value: string) => {
+    setSelectedFilters((prev) => {
       const current = prev[key] || [];
       const updated = current.includes(value)
-        ? current.filter((v: string) => v !== value)
+        ? current.filter((v) => v !== value)
         : [...current, value];
       return { ...prev, [key]: updated };
     });
   };
 
   const handlePriceChange = (min: number, max: number) => {
-    setSelectedFilters((prev: any) => ({
+    setSelectedFilters((prev) => ({
       ...prev,
       priceRange: { min, max }
     }));
@@ -177,8 +189,8 @@ export const AdvancedFilterSidebar: React.FC<AdvancedFilterSidebarProps> = ({ on
           )}
         </div>
         {activeCount > 0 && (
-          <button 
-            onClick={clearAllFilters} 
+          <button
+            onClick={clearAllFilters}
             className="text-xs text-red-500 hover:text-red-700 hover:underline font-semibold flex items-center gap-1"
           >
             <Trash2 size={12} /> Limpar
@@ -191,109 +203,113 @@ export const AdvancedFilterSidebar: React.FC<AdvancedFilterSidebarProps> = ({ on
         {Object.entries(FILTER_SYSTEM).map(([key, config]) => {
           // Special Rendering for Color (Grid of Swatches)
           if (key === 'color') {
-             return (
-               <div key={key} className="border-b border-gray-100 last:border-0">
-                 <button onClick={() => toggleSection(config.key)} className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors">
-                    <div className="flex items-center gap-2 font-semibold text-sm text-gray-700">
-                       <span>{config.icon}</span> {config.title}
-                    </div>
-                    <ChevronDown size={14} className={`text-gray-400 transition-transform duration-200 ${expandedSections[config.key] ? 'rotate-180' : ''}`} />
-                 </button>
-                 {expandedSections[config.key] && (
-                    <div className="px-4 pb-4 grid grid-cols-4 gap-2 animate-[slideDown_0.2s_ease-out]">
-                       {config.options.map(opt => (
-                          <button 
-                            key={opt.value}
-                            onClick={() => handleFilterToggle(config.key, opt.value)}
-                            className={`flex flex-col items-center gap-1 group p-1 rounded transition-colors ${selectedFilters.colors.includes(opt.value) ? 'bg-gray-50' : ''}`}
-                            title={opt.label}
-                          >
-                             <div 
-                               className={`w-8 h-8 rounded-full shadow-sm transition-transform ${selectedFilters.colors.includes(opt.value) ? 'ring-2 ring-primary ring-offset-2 scale-110' : 'hover:scale-105'}`}
-                               style={{ backgroundColor: opt.hex, border: opt.border ? '1px solid #e5e7eb' : 'none' }}
-                             >
-                               {selectedFilters.colors.includes(opt.value) && (
-                                 <div className="w-full h-full flex items-center justify-center">
-                                   <Check size={14} className={opt.hex === '#FFFFFF' ? 'text-black' : 'text-white'} />
-                                 </div>
-                               )}
-                             </div>
-                             <span className="text-[10px] text-gray-500 truncate w-full text-center">{opt.label}</span>
-                          </button>
-                       ))}
-                    </div>
-                 )}
-               </div>
-             );
+            return (
+              <div key={key} className="border-b border-gray-100 last:border-0">
+                <button onClick={() => toggleSection(config.key)} className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors">
+                  <div className="flex items-center gap-2 font-semibold text-sm text-gray-700">
+                    <span>{config.icon}</span> {config.title}
+                  </div>
+                  <ChevronDown size={14} className={`text-gray-400 transition-transform duration-200 ${expandedSections[config.key] ? 'rotate-180' : ''}`} />
+                </button>
+                {expandedSections[config.key] && (
+                  <div className="px-4 pb-4 grid grid-cols-4 gap-2 animate-[slideDown_0.2s_ease-out]">
+                    {config.options.map(opt => (
+                      <button
+                        key={opt.value}
+                        onClick={() => handleFilterToggle(config.key as FilterKey, opt.value)}
+                        className={`flex flex-col items-center gap-1 group p-1 rounded transition-colors ${selectedFilters.colors.includes(opt.value) ? 'bg-gray-50' : ''}`}
+                        title={opt.label}
+                      >
+                        <div
+                          className={`w-8 h-8 rounded-full shadow-sm transition-transform ${selectedFilters.colors.includes(opt.value) ? 'ring-2 ring-primary ring-offset-2 scale-110' : 'hover:scale-105'}`}
+                          style={{ backgroundColor: opt.hex, border: opt.border ? '1px solid #e5e7eb' : 'none' }}
+                        >
+                          {selectedFilters.colors.includes(opt.value) && (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <Check size={14} className={opt.hex === '#FFFFFF' ? 'text-black' : 'text-white'} />
+                            </div>
+                          )}
+                        </div>
+                        <span className="text-[10px] text-gray-500 truncate w-full text-center">{opt.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
           }
 
           // Special Rendering for Size (Grid of Buttons)
           if (key === 'size') {
-             return (
-               <div key={key} className="border-b border-gray-100 last:border-0">
-                 <button onClick={() => toggleSection(config.key)} className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors">
-                    <div className="flex items-center gap-2 font-semibold text-sm text-gray-700">
-                       <span>{config.icon}</span> {config.title}
-                    </div>
-                    <ChevronDown size={14} className={`text-gray-400 transition-transform duration-200 ${expandedSections[config.key] ? 'rotate-180' : ''}`} />
-                 </button>
-                 {expandedSections[config.key] && (
-                    <div className="px-4 pb-4 grid grid-cols-4 gap-2 animate-[slideDown_0.2s_ease-out]">
-                       {config.options.map(opt => (
-                          <button 
-                            key={opt.value}
-                            onClick={() => handleFilterToggle(config.key, opt.value)}
-                            className={`py-2 rounded border text-xs font-bold transition-all
-                               ${selectedFilters.sizes.includes(opt.value) 
-                                 ? 'bg-primary text-white border-primary shadow-sm' 
-                                 : 'bg-white text-gray-600 border-gray-200 hover:border-primary hover:text-primary'}
+            return (
+              <div key={key} className="border-b border-gray-100 last:border-0">
+                <button onClick={() => toggleSection(config.key)} className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors">
+                  <div className="flex items-center gap-2 font-semibold text-sm text-gray-700">
+                    <span>{config.icon}</span> {config.title}
+                  </div>
+                  <ChevronDown size={14} className={`text-gray-400 transition-transform duration-200 ${expandedSections[config.key] ? 'rotate-180' : ''}`} />
+                </button>
+                {expandedSections[config.key] && (
+                  <div className="px-4 pb-4 grid grid-cols-4 gap-2 animate-[slideDown_0.2s_ease-out]">
+                    {config.options.map(opt => (
+                      <button
+                        key={opt.value}
+                        onClick={() => handleFilterToggle(config.key as FilterKey, opt.value)}
+                        className={`py-2 rounded border text-xs font-bold transition-all
+                               ${selectedFilters.sizes.includes(opt.value)
+                            ? 'bg-primary text-white border-primary shadow-sm'
+                            : 'bg-white text-gray-600 border-gray-200 hover:border-primary hover:text-primary'}
                             `}
-                          >
-                             {opt.label}
-                          </button>
-                       ))}
-                    </div>
-                 )}
-               </div>
-             );
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
           }
 
           // Standard Checkbox Rendering for Others
           return (
             <div key={key} className="border-b border-gray-100 last:border-0">
-              <button 
-                onClick={() => toggleSection(config.key)} 
+              <button
+                onClick={() => toggleSection(config.key)}
                 className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
               >
                 <div className="flex items-center gap-2 font-semibold text-sm text-gray-700">
-                   <span>{config.icon}</span> {config.title}
-                   {selectedFilters[config.key]?.length > 0 && (
-                      <span className="bg-primary/10 text-primary text-[10px] font-bold px-1.5 py-0.5 rounded-full">
-                        {selectedFilters[config.key].length}
-                      </span>
-                   )}
+                  <span>{config.icon}</span> {config.title}
+                  {selectedFilters[config.key]?.length > 0 && (
+                    <span className="bg-primary/10 text-primary text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                      {selectedFilters[config.key].length}
+                    </span>
+                  )}
                 </div>
                 <ChevronDown size={14} className={`text-gray-400 transition-transform duration-200 ${expandedSections[config.key] ? 'rotate-180' : ''}`} />
               </button>
-              
+
               {expandedSections[config.key] && (
                 <div className="px-4 pb-4 space-y-1 animate-[slideDown_0.2s_ease-out]">
-                   {config.options.map(opt => {
-                      const isSelected = selectedFilters[config.key]?.includes(opt.value);
-                      return (
-                        <label key={opt.value} className="flex items-center gap-3 cursor-pointer group hover:bg-blue-50/50 p-2 rounded transition-colors">
-                           <div className={`w-5 h-5 rounded border flex items-center justify-center transition-all duration-200
+                  {config.options.map(opt => {
+                    const isSelected = selectedFilters[config.key as FilterKey]?.includes(opt.value);
+                    return (
+                      <label
+                        key={opt.value}
+                        onClick={() => handleFilterToggle(config.key as FilterKey, opt.value)}
+                        className="flex items-center gap-3 cursor-pointer group hover:bg-blue-50/50 p-2 rounded transition-colors"
+                      >
+                        <div className={`w-5 h-5 rounded border flex items-center justify-center transition-all duration-200
                               ${isSelected ? 'bg-primary border-primary' : 'bg-white border-gray-300 group-hover:border-primary'}
                            `}>
-                              {isSelected && <Check size={12} className="text-white" />}
-                           </div>
-                           <span className={`text-sm flex-1 ${isSelected ? 'text-primary font-medium' : 'text-gray-600'}`}>
-                              {opt.label}
-                           </span>
-                           {opt.icon && <span className="text-sm">{opt.icon}</span>}
-                        </label>
-                      );
-                   })}
+                          {isSelected && <Check size={12} className="text-white" />}
+                        </div>
+                        <span className={`text-sm flex-1 ${isSelected ? 'text-primary font-medium' : 'text-gray-600'}`}>
+                          {opt.label}
+                        </span>
+                        {opt.icon && <span className="text-sm">{opt.icon}</span>}
+                      </label>
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -302,69 +318,69 @@ export const AdvancedFilterSidebar: React.FC<AdvancedFilterSidebarProps> = ({ on
 
         {/* Price Range Section */}
         <div className="border-b border-gray-100 last:border-0">
-           <button onClick={() => toggleSection('price')} className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors">
-              <div className="flex items-center gap-2 font-semibold text-sm text-gray-700">
-                 <span>💰</span> Faixa de Preço
+          <button onClick={() => toggleSection('price')} className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors">
+            <div className="flex items-center gap-2 font-semibold text-sm text-gray-700">
+              <span>💰</span> Faixa de Preço
+            </div>
+            <ChevronDown size={14} className={`text-gray-400 transition-transform duration-200 ${expandedSections['price'] ? 'rotate-180' : ''}`} />
+          </button>
+          {expandedSections['price'] && (
+            <div className="px-4 pb-6 animate-[slideDown_0.2s_ease-out]">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 flex-1">
+                  <span className="text-[10px] text-gray-400 uppercase font-bold block mb-1">Mínimo</span>
+                  <div className="flex items-center">
+                    <span className="text-sm font-medium text-gray-500 mr-1">R$</span>
+                    <input
+                      type="number"
+                      className="w-full bg-transparent outline-none text-sm font-bold text-primary"
+                      value={selectedFilters.priceRange.min}
+                      onChange={(e) => handlePriceChange(Number(e.target.value), selectedFilters.priceRange.max)}
+                    />
+                  </div>
+                </div>
+                <span className="text-gray-300 font-light text-2xl">-</span>
+                <div className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 flex-1">
+                  <span className="text-[10px] text-gray-400 uppercase font-bold block mb-1">Máximo</span>
+                  <div className="flex items-center">
+                    <span className="text-sm font-medium text-gray-500 mr-1">R$</span>
+                    <input
+                      type="number"
+                      className="w-full bg-transparent outline-none text-sm font-bold text-primary"
+                      value={selectedFilters.priceRange.max}
+                      onChange={(e) => handlePriceChange(selectedFilters.priceRange.min, Number(e.target.value))}
+                    />
+                  </div>
+                </div>
               </div>
-              <ChevronDown size={14} className={`text-gray-400 transition-transform duration-200 ${expandedSections['price'] ? 'rotate-180' : ''}`} />
-           </button>
-           {expandedSections['price'] && (
-              <div className="px-4 pb-6 animate-[slideDown_0.2s_ease-out]">
-                 <div className="flex items-center gap-2 mb-4">
-                    <div className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 flex-1">
-                       <span className="text-[10px] text-gray-400 uppercase font-bold block mb-1">Mínimo</span>
-                       <div className="flex items-center">
-                          <span className="text-sm font-medium text-gray-500 mr-1">R$</span>
-                          <input 
-                             type="number" 
-                             className="w-full bg-transparent outline-none text-sm font-bold text-primary"
-                             value={selectedFilters.priceRange.min}
-                             onChange={(e) => handlePriceChange(Number(e.target.value), selectedFilters.priceRange.max)}
-                          />
-                       </div>
-                    </div>
-                    <span className="text-gray-300 font-light text-2xl">-</span>
-                    <div className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 flex-1">
-                       <span className="text-[10px] text-gray-400 uppercase font-bold block mb-1">Máximo</span>
-                       <div className="flex items-center">
-                          <span className="text-sm font-medium text-gray-500 mr-1">R$</span>
-                          <input 
-                             type="number" 
-                             className="w-full bg-transparent outline-none text-sm font-bold text-primary"
-                             value={selectedFilters.priceRange.max}
-                             onChange={(e) => handlePriceChange(selectedFilters.priceRange.min, Number(e.target.value))}
-                          />
-                       </div>
-                    </div>
-                 </div>
-                 
-                 <div className="space-y-1">
-                    {[
-                       { l: 'Até R$ 200', min: 0, max: 200 },
-                       { l: 'R$ 200 - R$ 400', min: 200, max: 400 },
-                       { l: 'R$ 400 - R$ 600', min: 400, max: 600 },
-                       { l: 'Acima de R$ 600', min: 600, max: 1000 },
-                    ].map((p, i) => (
-                       <button 
-                          key={i}
-                          onClick={() => handlePriceChange(p.min, p.max)}
-                          className="w-full text-left text-xs py-2 px-3 hover:bg-blue-50 rounded text-gray-600 hover:text-primary transition-colors flex justify-between group"
-                       >
-                          {p.l}
-                          <span className="opacity-0 group-hover:opacity-100 transition-opacity text-primary">→</span>
-                       </button>
-                    ))}
-                 </div>
+
+              <div className="space-y-1">
+                {[
+                  { l: 'Até R$ 200', min: 0, max: 200 },
+                  { l: 'R$ 200 - R$ 400', min: 200, max: 400 },
+                  { l: 'R$ 400 - R$ 600', min: 400, max: 600 },
+                  { l: 'Acima de R$ 600', min: 600, max: 1000 },
+                ].map((p, i) => (
+                  <button
+                    key={i}
+                    onClick={() => handlePriceChange(p.min, p.max)}
+                    className="w-full text-left text-xs py-2 px-3 hover:bg-blue-50 rounded text-gray-600 hover:text-primary transition-colors flex justify-between group"
+                  >
+                    {p.l}
+                    <span className="opacity-0 group-hover:opacity-100 transition-opacity text-primary">→</span>
+                  </button>
+                ))}
               </div>
-           )}
+            </div>
+          )}
         </div>
       </div>
 
       {/* Footer */}
       <div className="p-4 border-t border-gray-100 bg-gray-50 rounded-b-xl text-center">
-         <span className="text-xs font-bold text-primary">
-            {totalProducts} produto{totalProducts !== 1 ? 's' : ''} encontrado{totalProducts !== 1 ? 's' : ''}
-         </span>
+        <span className="text-xs font-bold text-primary">
+          {totalProducts} produto{totalProducts !== 1 ? 's' : ''} encontrado{totalProducts !== 1 ? 's' : ''}
+        </span>
       </div>
     </div>
   );

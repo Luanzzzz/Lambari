@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Kit, Brand } from '../types';
 import { api, KitFilters } from '../services/api';
 import { Header } from '../components/Header';
@@ -10,6 +10,7 @@ import { VideoCarousel } from '../components/VideoCarousel';
 import { Filter, X } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { AdvancedFilterSidebar } from '../components/AdvancedFilterSidebar';
+import { DEFAULTS } from '../utils/formatters';
 
 interface CatalogProps {
   onLoginSuccess: () => void;
@@ -20,13 +21,17 @@ export const Catalog: React.FC<CatalogProps> = ({ onLoginSuccess }) => {
   const [brands, setBrands] = useState<Brand[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedKit, setSelectedKit] = useState<Kit | null>(null);
-  
+
   // Advanced Filters
   const [filters, setFilters] = useState<KitFilters>({
-    priceRange: { min: 0, max: 1000 }
+    priceRange: DEFAULTS.PRICE_RANGE
   });
 
   const [showMobileFilters, setShowMobileFilters] = useState(false);
+
+  const handleFilterChange = useCallback((newFilters: KitFilters) => {
+    setFilters(prev => ({ ...prev, ...newFilters }));
+  }, []);
 
   useEffect(() => {
     api.getBrands().then(setBrands);
@@ -44,7 +49,7 @@ export const Catalog: React.FC<CatalogProps> = ({ onLoginSuccess }) => {
         setLoading(false);
       }
     };
-    
+
     // Tiny debounce/delay to simulate network and prevent flicker
     const timer = setTimeout(loadData, 100);
     return () => clearTimeout(timer);
@@ -52,7 +57,7 @@ export const Catalog: React.FC<CatalogProps> = ({ onLoginSuccess }) => {
 
   return (
     <div className="min-h-screen flex flex-col bg-background-secondary">
-      <Header 
+      <Header
         categories={[]} // Categories managed internally by filters now
         onSearch={(s) => setFilters(prev => ({ ...prev, search: s }))}
         onLoginSuccess={onLoginSuccess}
@@ -64,10 +69,10 @@ export const Catalog: React.FC<CatalogProps> = ({ onLoginSuccess }) => {
       <div className="container mx-auto px-4 py-8 flex gap-8 flex-1 relative">
         {/* Sidebar Filters - Desktop */}
         <aside className="hidden lg:block flex-shrink-0 sticky top-24 h-fit">
-           <AdvancedFilterSidebar 
-              onFilterChange={(newFilters) => setFilters(prev => ({ ...prev, ...newFilters }))}
-              totalProducts={kits.length}
-           />
+          <AdvancedFilterSidebar
+            onFilterChange={handleFilterChange}
+            totalProducts={kits.length}
+          />
         </aside>
 
         {/* Mobile Filter Toggle */}
@@ -95,9 +100,9 @@ export const Catalog: React.FC<CatalogProps> = ({ onLoginSuccess }) => {
           ) : kits.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {kits.map(kit => (
-                <KitCard 
-                  key={kit.id} 
-                  kit={kit} 
+                <KitCard
+                  key={kit.id}
+                  kit={kit}
                   onClick={setSelectedKit}
                   brands={brands}
                 />
@@ -110,9 +115,9 @@ export const Catalog: React.FC<CatalogProps> = ({ onLoginSuccess }) => {
               <p className="text-gray-500 mb-6 max-w-sm mx-auto">
                 Não encontramos kits com os filtros selecionados. Tente ajustar os critérios de busca.
               </p>
-              <Button 
-                variant="ghost" 
-                onClick={() => setFilters({ priceRange: { min: 0, max: 1000 } })} 
+              <Button
+                variant="ghost"
+                onClick={() => setFilters({ priceRange: DEFAULTS.PRICE_RANGE })}
                 className="mt-4"
               >
                 Limpar Todos os Filtros
@@ -124,9 +129,9 @@ export const Catalog: React.FC<CatalogProps> = ({ onLoginSuccess }) => {
 
       <Footer />
 
-      <KitModal 
-        kit={selectedKit} 
-        isOpen={!!selectedKit} 
+      <KitModal
+        kit={selectedKit}
+        isOpen={!!selectedKit}
         onClose={() => setSelectedKit(null)}
         brands={brands}
       />
@@ -141,15 +146,15 @@ export const Catalog: React.FC<CatalogProps> = ({ onLoginSuccess }) => {
             </button>
           </div>
           <div className="flex-1 overflow-y-auto p-4 bg-gray-50">
-             <AdvancedFilterSidebar 
-                onFilterChange={(newFilters) => setFilters(prev => ({ ...prev, ...newFilters }))}
-                totalProducts={kits.length}
-             />
+            <AdvancedFilterSidebar
+              onFilterChange={handleFilterChange}
+              totalProducts={kits.length}
+            />
           </div>
           <div className="p-4 border-t border-gray-100 bg-white">
-             <Button fullWidth onClick={() => setShowMobileFilters(false)}>
-                Ver {kits.length} Produtos
-             </Button>
+            <Button fullWidth onClick={() => setShowMobileFilters(false)}>
+              Ver {kits.length} Produtos
+            </Button>
           </div>
         </div>
       )}

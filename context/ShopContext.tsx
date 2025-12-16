@@ -3,6 +3,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Kit, UserProfile, AuthState } from '../types';
 import toast from 'react-hot-toast';
 import { MOCK_USER_PROFILE } from '../services/mockData';
+import { WHATSAPP_CONFIG } from '../utils/formatters';
 
 export interface CartItem extends Kit {
   quantity: number;
@@ -35,7 +36,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [cart, setCart] = useState<CartItem[]>([]);
   const [wishlist, setWishlist] = useState<Kit[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
-  
+
   const [auth, setAuth] = useState<AuthState>({
     isAuthenticated: false,
     user: null,
@@ -46,10 +47,10 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const savedCart = localStorage.getItem('lambari_cart');
     const savedWishlist = localStorage.getItem('lambari_wishlist');
-    
+
     if (savedCart) setCart(JSON.parse(savedCart));
     if (savedWishlist) setWishlist(JSON.parse(savedWishlist));
-    
+
     checkAuth();
   }, []);
 
@@ -63,7 +64,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [wishlist]);
 
   // --- AUTH ACTIONS ---
-  
+
   const checkAuth = () => {
     // Check Local Storage (Remember Me)
     const localSession = localStorage.getItem('lambari_session');
@@ -71,7 +72,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setAuth(JSON.parse(localSession));
       return;
     }
-    
+
     // Check Session Storage (Current Tab)
     const sessionSession = sessionStorage.getItem('lambari_session');
     if (sessionSession) {
@@ -86,9 +87,9 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
       user: MOCK_USER_PROFILE,
       isAdmin: false
     };
-    
+
     setAuth(sessionData);
-    
+
     if (rememberMe) {
       localStorage.setItem('lambari_session', JSON.stringify(sessionData));
     } else {
@@ -111,7 +112,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const existing = prev.find(item => item.id === kit.id);
       if (existing) {
         toast.success(`Mais uma unidade de "${kit.name}" adicionada!`);
-        return prev.map(item => 
+        return prev.map(item =>
           item.id === kit.id ? { ...item, quantity: item.quantity + 1 } : item
         );
       }
@@ -147,17 +148,17 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const checkoutWhatsApp = () => {
     if (cart.length === 0) {
-        toast.error('Seu carrinho está vazio!');
-        return;
+      toast.error('Seu carrinho está vazio!');
+      return;
     }
 
-    const phone = '5511947804855';
+    const phone = WHATSAPP_CONFIG.PHONE;
     let message = `Olá! Gostaria de fazer um pedido no Atacado Lambari Kids:\n\n`;
-    
+
     cart.forEach(item => {
-        const subtotal = item.price * item.quantity;
-        message += `📦 *${item.quantity}x ${item.name}* (Ref: ${item.id})\n`;
-        message += `   Preço Un: R$ ${item.price.toFixed(2)} | Sub: R$ ${subtotal.toFixed(2)}\n\n`;
+      const subtotal = item.price * item.quantity;
+      message += `📦 *${item.quantity}x ${item.name}* (Ref: ${item.id})\n`;
+      message += `   Preço Un: R$ ${item.price.toFixed(2)} | Sub: R$ ${subtotal.toFixed(2)}\n\n`;
     });
 
     message += `💰 *TOTAL DO PEDIDO: R$ ${cartTotal.toFixed(2)}*\n\n`;

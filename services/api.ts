@@ -22,8 +22,8 @@ export interface KitFilters {
   gender?: GenderType[];
   category?: string[];
   ageRange?: AgeRangeType[];
-  sizes?: string[]; 
-  colors?: string[]; 
+  sizes?: string[];
+  colors?: string[];
   priceRange?: { min: number; max: number };
   minQuantity?: number;
   material?: string[];
@@ -50,7 +50,7 @@ class ApiService {
     const slug = brandData.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
     const newBrand: Brand = {
       ...brandData,
-      id: slug, 
+      id: slug,
       slug,
     };
     this.brands.push(newBrand);
@@ -126,7 +126,7 @@ class ApiService {
     await delay(500);
     const newKit: Kit = {
       ...kit,
-      id: 'k' + Math.random().toString(36).substr(2, 9),
+      id: 'k' + Math.random().toString(36).substring(2, 11),
       createdAt: new Date().toISOString(),
     };
     this.kits = [newKit, ...this.kits];
@@ -142,11 +142,11 @@ class ApiService {
   async createProduct(product: Omit<Product, 'id' | 'createdAt' | 'inStock'>): Promise<Product> {
     await delay(500);
     const totalStock = Object.values(product.stock).reduce((a, b) => a + b, 0);
-    
+
     const newProduct: Product = {
       ...product,
-      id: 'p' + Math.random().toString(36).substr(2, 9),
-      inStock: totalStock > 0, 
+      id: 'p' + Math.random().toString(36).substring(2, 11),
+      inStock: totalStock > 0,
       createdAt: new Date().toISOString(),
     };
     this.products = [newProduct, ...this.products];
@@ -154,27 +154,29 @@ class ApiService {
   }
 
   async updateProduct(id: string, updates: Partial<Product>): Promise<Product> {
-      await delay(400);
-      const index = this.products.findIndex(p => p.id === id);
-      if (index === -1) throw new Error("Product not found");
-      
-      this.products[index] = { ...this.products[index], ...updates };
-      
-      if (updates.stock) {
-        const total = Object.values(updates.stock).reduce((a, b) => a + b, 0);
-        this.products[index].inStock = total > 0;
-      }
+    await delay(400);
+    const index = this.products.findIndex(p => p.id === id);
+    if (index === -1) throw new Error("Product not found");
 
-      return this.products[index];
+    this.products[index] = { ...this.products[index], ...updates };
+
+    if (updates.stock) {
+      const total = Object.values(updates.stock).reduce((a, b) => a + b, 0);
+      this.products[index].inStock = total > 0;
+    }
+
+    return this.products[index];
   }
 
-  async patchProduct(id: string, field: keyof Product, value: any): Promise<Product> {
+  async patchProduct<K extends keyof Product>(id: string, field: K, value: Product[K]): Promise<Product> {
     await delay(200);
     const index = this.products.findIndex(p => p.id === id);
     if (index === -1) throw new Error("Product not found");
-    
-    // @ts-ignore
-    this.products[index][field] = value;
+
+    this.products[index] = {
+      ...this.products[index],
+      [field]: value
+    };
     return this.products[index];
   }
 
@@ -182,18 +184,18 @@ class ApiService {
     await delay(200);
     const index = this.products.findIndex(p => p.id === id);
     if (index === -1) throw new Error("Product not found");
-    
+
     const oldQty = this.products[index].stock[size] || 0;
     this.products[index].stock = {
       ...this.products[index].stock,
       [size]: quantity
     };
-    
+
     const total = Object.values(this.products[index].stock).reduce((a, b) => a + b, 0);
     this.products[index].inStock = total > 0;
 
     this.stockHistory.unshift({
-      id: 'h' + Math.random(),
+      id: 'h' + Math.random().toString(36).substring(2, 11),
       productId: id,
       productName: this.products[index].name,
       size,
@@ -222,20 +224,20 @@ class ApiService {
 
   async executeImport(validations: ImportValidationResult[]): Promise<BulkImportReport> {
     return {
-        totalRows: 0,
-        successCount: 0,
-        warningCount: 0,
-        errorCount: 0,
-        createdProducts: 0,
-        createdCategories: 0,
-        createdBrands: 0,
-        validations: [],
-        timestamp: new Date().toISOString()
+      totalRows: 0,
+      successCount: 0,
+      warningCount: 0,
+      errorCount: 0,
+      createdProducts: 0,
+      createdCategories: 0,
+      createdBrands: 0,
+      validations: [],
+      timestamp: new Date().toISOString()
     };
   }
-  
+
   async importProductsBulk(file: File): Promise<BulkImportReport> {
-     return this.executeImport([]);
+    return this.executeImport([]);
   }
 
   // --- DASHBOARD ---
@@ -246,29 +248,29 @@ class ApiService {
 
   async getDashboardStats(): Promise<DashboardStats> {
     await delay(300);
-    const totalStock = this.products.reduce((acc, p) => acc + Object.values(p.stock).reduce((a,b)=>a+(b as number),0), 0);
+    const totalStock = this.products.reduce((acc, p) => acc + Object.values(p.stock).reduce((a, b) => a + (b as number), 0), 0);
     const lowStock = this.products.filter(p => {
-        const total = Object.values(p.stock).reduce((a,b)=>a+(b as number),0);
-        return total > 0 && total < 10;
+      const total = Object.values(p.stock).reduce((a, b) => a + (b as number), 0);
+      return total > 0 && total < 10;
     }).length;
 
-    const history = Array.from({length: 30}, (_, i) => {
-        const date = new Date();
-        date.setDate(date.getDate() - (29 - i));
-        return {
-            name: date.toLocaleDateString('pt-BR', {day: '2-digit', month: '2-digit'}),
-            value: Math.floor(Math.random() * 2000) + 500
-        };
+    const history = Array.from({ length: 30 }, (_, i) => {
+      const date = new Date();
+      date.setDate(date.getDate() - (29 - i));
+      return {
+        name: date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }),
+        value: Math.floor(Math.random() * 2000) + 500
+      };
     });
 
     const topProducts = [
-        { name: 'Kit Verão Premium', sales: 23, revenue: 5750 },
-        { name: 'Kit Inverno Básico', sales: 18, revenue: 3240 },
-        { name: 'Kit Escola', sales: 15, revenue: 2250 },
-        { name: 'Kit Bebê Conforto', sales: 12, revenue: 1800 },
-        { name: 'Vestido Festa Luxo', sales: 10, revenue: 1500 }
+      { name: 'Kit Verão Premium', sales: 23, revenue: 5750 },
+      { name: 'Kit Inverno Básico', sales: 18, revenue: 3240 },
+      { name: 'Kit Escola', sales: 15, revenue: 2250 },
+      { name: 'Kit Bebê Conforto', sales: 12, revenue: 1800 },
+      { name: 'Vestido Festa Luxo', sales: 10, revenue: 1500 }
     ];
-    
+
     return {
       totalKits: this.kits.length,
       totalProducts: this.products.length,
@@ -278,7 +280,7 @@ class ApiService {
       outOfStockItems: this.products.filter(p => !p.inStock).length,
       totalStockCount: totalStock,
       viewsToday: Math.floor(Math.random() * 500) + 100,
-      
+
       totalSales: 25450.00,
       totalProfit: 8230.00,
       averageMargin: 32.4,
