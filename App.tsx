@@ -49,21 +49,21 @@ const App: React.FC = () => {
   return (
     <ShopProvider>
       <HashRouter>
-        <Toaster 
-          position="top-center" 
+        <Toaster
+          position="top-center"
           toastOptions={{
-              style: {
-                  background: '#333',
-                  color: '#fff',
-                  fontSize: '14px',
-              },
-              success: {
-                  style: { background: '#003366' },
-                  iconTheme: { primary: '#FFD700', secondary: '#003366' }
-              }
+            style: {
+              background: '#333',
+              color: '#fff',
+              fontSize: '14px',
+            },
+            success: {
+              style: { background: '#003366' },
+              iconTheme: { primary: '#FFD700', secondary: '#003366' }
+            }
           }}
         />
-        
+
         <CartSidebar />
         <ChatWidget />
 
@@ -71,21 +71,21 @@ const App: React.FC = () => {
           {/* Public Routes - Catalog is now Home */}
           <Route path="/" element={<Catalog onLoginSuccess={() => setIsAdminAuthenticated(true)} />} />
           <Route path="/produtos" element={<Navigate to="/" replace />} />
-          
+
           <Route path="/wishlist" element={<Wishlist />} />
           <Route path="/login" element={<Login />} />
           <Route path="/rastreio" element={<Tracking />} />
           <Route path="/minha-conta" element={<CustomerDashboard />} />
-          
+
           {/* Institutional Routes */}
           <Route path="/sobre" element={<About />} />
           <Route path="/envios" element={<Shipping />} />
           <Route path="/politica-troca" element={<ReturnPolicy />} />
           <Route path="/contato" element={<Contact />} />
-          
+
           {/* Protected Admin Routes */}
-          <Route 
-            path="/admin" 
+          <Route
+            path="/admin"
             element={
               <ProtectedAdminRoute isAuthenticated={isAdminAuthenticated}>
                 <AdminLayout />

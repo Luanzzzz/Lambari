@@ -23,20 +23,21 @@ export interface Product {
   gender: GenderType;
   categoryId: string;
   subcategory?: string;
-  
+
   price: number;
   costPrice: number;
   promoPrice?: number;
   isPromo: boolean;
-  
+
   images: string[];
+  mainImage?: string;
   colors: string[];
-  
+
   stock: Record<string, number>;
   inStock: boolean;
   active: boolean;
   featured: boolean;
-  
+
   createdAt: string;
 }
 
@@ -54,23 +55,23 @@ export interface Kit {
   price: number;
   items: KitItem[];
   totalPieces: number;
-  
+
   images: string[];
   videos: string[];
-  
+
   brand: string;
   gender: GenderType;
   season?: SeasonType;
-  ageRange?: AgeRangeType; 
-  style?: string[]; 
-  category?: string; 
-  minQuantity?: number; 
-  availability?: AvailabilityType; 
-  
+  ageRange?: AgeRangeType;
+  style?: string[];
+  category?: string;
+  minQuantity?: number;
+  availability?: AvailabilityType;
+
   sizesAvailable: string[];
   colors: string[];
   material: string;
-  
+
   active: boolean;
   createdAt: string;
 }
@@ -157,17 +158,17 @@ export interface DashboardStats {
   viewsToday: number;
   totalCategories: number;
   lowStock: number;
-  
+
   totalSales: number;
   totalProfit: number;
   averageMargin: number;
   ordersCount: number;
-  
+
   salesGrowth: number;
   profitGrowth: number;
   marginGrowth: number;
   ordersGrowth: number;
-  
+
   salesHistory: { name: string; value: number }[];
   topProducts: { name: string; sales: number; revenue: number }[];
 }
