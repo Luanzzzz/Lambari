@@ -57,10 +57,13 @@ export const CategoryManager: React.FC = () => {
     if (window.confirm('Tem certeza que deseja excluir esta categoria?')) {
       try {
         await api.deleteCategory(categoryId);
+        // Optimistic UI: update local state immediately
+        setCategories(prev => prev.filter(c => c.id !== categoryId));
         toast.success('Categoria excluída');
-        loadCategories();
       } catch (e) {
         toast.error('Erro ao excluir categoria');
+        // On error, re-fetch to restore correct state
+        loadCategories();
       }
     }
   };

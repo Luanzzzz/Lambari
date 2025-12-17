@@ -1,18 +1,48 @@
 
-import React, { useState, useEffect } from 'react';
-import { KitFilters } from '../services/api';
+import React, { useState, useEffect, useMemo } from 'react';
+import { api } from '../services/api';
 import { ChevronDown, Check, Trash2 } from 'lucide-react';
+import { Brand, Category } from '../types';
+
+type FilterKey = 'season' | 'brand' | 'gender' | 'category' | 'sizes' | 'colors';
+
+interface FilterOption {
+  value: string;
+  label: string;
+  icon?: string;
+  color?: string;
+  hex?: string;
+  border?: boolean;
+}
+
+interface FilterConfig {
+  title: string;
+  icon: string;
+  key: FilterKey;
+  options: FilterOption[];
+}
+
+interface SelectedFilters {
+  season: string[];
+  brand: string[];
+  gender: string[];
+  category: string[];
+  sizes: string[];
+  colors: string[];
+  priceRange: { min: number; max: number };
+}
 
 interface AdvancedFilterSidebarProps {
-  onFilterChange: (filters: KitFilters) => void;
+  onFilterChange: (filters: SelectedFilters) => void;
   totalProducts: number;
 }
 
-const FILTER_SYSTEM = {
+// Static filter options (not managed in Admin yet)
+const STATIC_FILTERS = {
   season: {
     title: 'Estação / Coleção',
     icon: '🌤️',
-    key: 'season',
+    key: 'season' as FilterKey,
     options: [
       { value: 'verao', label: 'Verão', icon: '☀️', color: '#F59E0B' },
       { value: 'inverno', label: 'Inverno', icon: '❄️', color: '#3B82F6' },
@@ -20,20 +50,10 @@ const FILTER_SYSTEM = {
       { value: 'outono', label: 'Outono', icon: '🍂', color: '#F97316' }
     ]
   },
-  brand: {
-    title: 'Linha / Marca',
-    icon: '⭐',
-    key: 'brand',
-    options: [
-      { value: 'premium', label: 'Premium' },
-      { value: 'basic', label: 'Básico' },
-      { value: 'luxury', label: 'Lambari Luxury' }
-    ]
-  },
   gender: {
     title: 'Gênero',
     icon: '👶',
-    key: 'gender',
+    key: 'gender' as FilterKey,
     options: [
       { value: 'boy', label: 'Menino', icon: '👦' },
       { value: 'girl', label: 'Menina', icon: '👧' },
@@ -41,24 +61,10 @@ const FILTER_SYSTEM = {
       { value: 'bebe', label: 'Bebê', icon: '🍼' }
     ]
   },
-  category: {
-    title: 'Categoria',
-    icon: '📦',
-    key: 'category',
-    options: [
-      { value: 'conjuntos', label: 'Conjuntos', icon: '👕' },
-      { value: 'camisetas', label: 'Camisetas', icon: '👔' },
-      { value: 'calcas', label: 'Calças', icon: '👖' },
-      { value: 'vestidos', label: 'Vestidos', icon: '👗' },
-      { value: 'pijamas', label: 'Pijamas', icon: '🌙' },
-      { value: 'moletons', label: 'Moletons', icon: '🧥' },
-      { value: 'acessorios', label: 'Acessórios', icon: '🎀' }
-    ]
-  },
   size: {
     title: 'Tamanho',
     icon: '📐',
-    key: 'sizes',
+    key: 'sizes' as FilterKey,
     options: [
       { value: 'RN', label: 'RN' },
       { value: 'P', label: 'P' },
@@ -78,7 +84,7 @@ const FILTER_SYSTEM = {
   color: {
     title: 'Cor',
     icon: '🎨',
-    key: 'colors',
+    key: 'colors' as FilterKey,
     options: [
       { value: 'branco', label: 'Branco', hex: '#FFFFFF', border: true },
       { value: 'preto', label: 'Preto', hex: '#000000' },
@@ -92,18 +98,6 @@ const FILTER_SYSTEM = {
     ]
   }
 };
-
-type FilterKey = 'season' | 'brand' | 'gender' | 'category' | 'sizes' | 'colors';
-
-interface SelectedFilters {
-  season: string[];
-  brand: string[];
-  gender: string[];
-  category: string[];
-  sizes: string[];
-  colors: string[];
-  priceRange: { min: number; max: number };
-}
 
 export const AdvancedFilterSidebar: React.FC<AdvancedFilterSidebarProps> = ({ onFilterChange, totalProducts }) => {
   const [selectedFilters, setSelectedFilters] = useState<SelectedFilters>({
@@ -125,6 +119,69 @@ export const AdvancedFilterSidebar: React.FC<AdvancedFilterSidebarProps> = ({ on
     colors: false,
     price: true
   });
+
+  // Dynamic data from localStorage (fetched from API)
+  const [dynamicBrands, setDynamicBrands] = useState<Brand[]>([]);
+  const [dynamicCategories, setDynamicCategories] = useState<Category[]>([]);
+
+  // Fetch dynamic brands and categories on component mount
+  useEffect(() => {
+    const fetchDynamicData = async () => {
+      try {
+        const [brands, categories] = await Promise.all([
+          api.getBrands(),
+          api.getCategories()
+        ]);
+        setDynamicBrands(brands.filter(b => b.active !== false));
+        setDynamicCategories(categories.filter(c => c.active !== false));
+      } catch (e) {
+        console.error('Error fetching filter data:', e);
+      }
+    };
+    fetchDynamicData();
+  }, []);
+
+  // Build dynamic FILTER_SYSTEM by merging static + dynamic data
+  const FILTER_SYSTEM = useMemo(() => {
+    const brandOptions = dynamicBrands.map(b => ({
+      value: b.slug || b.name.toLowerCase().replace(/\s+/g, '-'),
+      label: b.name,
+      icon: undefined
+    }));
+
+    const categoryOptions = dynamicCategories
+      .filter(c => c.type === 'product' || !c.type) // Only product categories
+      .map(c => ({
+        value: c.slug || c.name.toLowerCase().replace(/\s+/g, '-'),
+        label: c.name,
+        icon: c.icon || '📦'
+      }));
+
+    return {
+      season: STATIC_FILTERS.season,
+      brand: {
+        title: 'Linha / Marca',
+        icon: '⭐',
+        key: 'brand' as FilterKey,
+        options: brandOptions.length > 0 ? brandOptions : [
+          { value: 'premium', label: 'Premium' },
+          { value: 'basic', label: 'Básico' }
+        ]
+      },
+      gender: STATIC_FILTERS.gender,
+      category: {
+        title: 'Categoria',
+        icon: '📦',
+        key: 'category' as FilterKey,
+        options: categoryOptions.length > 0 ? categoryOptions : [
+          { value: 'conjuntos', label: 'Conjuntos', icon: '👕' },
+          { value: 'camisetas', label: 'Camisetas', icon: '👔' }
+        ]
+      },
+      size: STATIC_FILTERS.size,
+      color: STATIC_FILTERS.color
+    };
+  }, [dynamicBrands, dynamicCategories]);
 
   // Debounce filter updates
   useEffect(() => {
@@ -200,7 +257,7 @@ export const AdvancedFilterSidebar: React.FC<AdvancedFilterSidebarProps> = ({ on
 
       {/* Filter Sections Container */}
       <div className="overflow-y-auto flex-1 p-0 custom-scrollbar">
-        {Object.entries(FILTER_SYSTEM).map(([key, config]) => {
+        {(Object.entries(FILTER_SYSTEM) as [string, FilterConfig][]).map(([key, config]) => {
           // Special Rendering for Color (Grid of Swatches)
           if (key === 'color') {
             return (
