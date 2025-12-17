@@ -2,29 +2,29 @@
 import { Product, Category, Kit, StockMovement, Brand, UserProfile, Order } from '../types';
 
 export const INITIAL_BRANDS: Brand[] = [
-  { 
-    id: 'premium', 
-    name: 'Premium', 
-    slug: 'premium', 
-    color: '#1E40AF', 
-    textColor: '#FFFFFF', 
+  {
+    id: 'premium',
+    name: 'Premium',
+    slug: 'premium',
+    color: '#1E40AF',
+    textColor: '#FFFFFF',
     active: true,
     order: 1
   },
-  { 
-    id: 'basic', 
-    name: 'Básico', 
-    slug: 'basico', 
-    color: '#3B82F6', 
-    textColor: '#FFFFFF', 
+  {
+    id: 'basic',
+    name: 'Básico',
+    slug: 'basico',
+    color: '#3B82F6',
+    textColor: '#FFFFFF',
     active: true,
     order: 2
   },
-  { 
-    id: 'luxury', 
-    name: 'Lambari Luxury', 
-    slug: 'luxury', 
-    color: '#F59E0B', 
+  {
+    id: 'luxury',
+    name: 'Lambari Luxury',
+    slug: 'luxury',
+    color: '#F59E0B',
     textColor: '#FFFFFF',
     active: true,
     order: 3
@@ -61,10 +61,10 @@ export const MOCK_ORDERS: Order[] = [
     total: 2450.00,
     status: 'in_transit',
     customer: {
-        name: 'João Silva',
-        company: 'Loja Silva',
-        email: 'joao@email.com',
-        phone: '(11) 99999-9999'
+      name: 'João Silva',
+      company: 'Loja Silva',
+      email: 'joao@email.com',
+      phone: '(11) 99999-9999'
     },
     items: [
       { name: 'Kit Verão Conforto 2025', quantity: 1, price: 349.90 },
@@ -90,10 +90,10 @@ export const MOCK_ORDERS: Order[] = [
     total: 1890.00,
     status: 'delivered',
     customer: {
-        name: 'Maria Oliveira',
-        company: 'Baby Store',
-        email: 'maria@email.com',
-        phone: '(11) 88888-8888'
+      name: 'Maria Oliveira',
+      company: 'Baby Store',
+      email: 'maria@email.com',
+      phone: '(11) 88888-8888'
     },
     items: [
       { name: 'Kit Inverno Baby', quantity: 3, price: 289.90 },
@@ -115,7 +115,7 @@ export const MOCK_ORDERS: Order[] = [
   }
 ];
 
-export const INITIAL_PRODUCTS: Product[] = []; 
+export const INITIAL_PRODUCTS: Product[] = [];
 
 export const INITIAL_KITS: Kit[] = [
   {
@@ -319,6 +319,157 @@ export const INITIAL_KITS: Kit[] = [
     ],
     videos: [],
     items: [],
+    active: true,
+    createdAt: new Date().toISOString()
+  },
+  // === KITS PARA N8N API ===
+  {
+    id: '10',
+    name: "Kit Verão Tropical",
+    brand: "premium",
+    gender: "bebe",
+    season: 'verao',
+    category: 'conjuntos',
+    ageRange: 'baby',
+    style: ['verao', 'casual'],
+    minQuantity: 3,
+    availability: 'em_estoque',
+    price: 89.90,
+    totalPieces: 3,
+    sizesAvailable: ["6-9 meses", "9-12 meses"],
+    colors: ["Azul/Amarelo", "Verde/Laranja"],
+    material: "algodao",
+    description: "Kit completo para aproveitar o verão com conforto e estilo. Peças leves e frescas para os dias quentes. Inclui Body Manga Curta Tropical (Carter's), Shorts Saruel (Tip Top), Chapéu de Praia (Pimpolho).",
+    images: [
+      "https://placehold.co/600x800/87CEEB/31343C?text=Kit+Verao+Tropical"
+    ],
+    videos: [],
+    items: [
+      { productId: 'body-tropical', productName: "Body Manga Curta Tropical", quantity: 1 },
+      { productId: 'shorts-saruel', productName: "Shorts Saruel", quantity: 1 },
+      { productId: 'chapeu-praia', productName: "Chapéu de Praia", quantity: 1 }
+    ],
+    active: true,
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: '11',
+    name: "Kit Inverno Quentinho Baby",
+    brand: "basic",
+    gender: "bebe",
+    season: 'inverno',
+    category: 'conjuntos',
+    ageRange: 'rn',
+    style: ['inverno', 'casual'],
+    minQuantity: 5,
+    availability: 'em_estoque',
+    price: 120.00,
+    totalPieces: 5,
+    sizesAvailable: ["RN", "1-3 meses"],
+    colors: ["Rosa/Branco", "Azul/Cinza", "Bege"],
+    material: "plush",
+    description: "Kit aconchegante para os dias frios. Peças macias e quentinhas para manter seu bebê protegido. Inclui Macacão Plush (Gerber), Body Térmico (Carter's), Calça com Pé (Tip Top), Touca e Luvas (Pimpolho).",
+    images: [
+      "https://placehold.co/600x800/FFB6C1/31343C?text=Kit+Inverno+Baby"
+    ],
+    videos: [],
+    items: [
+      { productId: 'macacao-plush', productName: "Macacão Plush com Capuz", quantity: 1 },
+      { productId: 'body-termico', productName: "Body Manga Longa Térmico", quantity: 1 },
+      { productId: 'calca-pe', productName: "Calça com Pé", quantity: 1 },
+      { productId: 'touca-malha', productName: "Touca de Malha", quantity: 1 },
+      { productId: 'luvas-rn', productName: "Luvas Antiarranhão", quantity: 1 }
+    ],
+    active: true,
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: '12',
+    name: "Kit Passeio Chique",
+    brand: "luxury",
+    gender: "boy",
+    season: 'primavera',
+    category: 'conjuntos',
+    ageRange: 'baby',
+    style: ['social', 'festa'],
+    minQuantity: 2,
+    availability: 'em_estoque',
+    price: 150.00,
+    totalPieces: 4,
+    sizesAvailable: ["3-6 meses"],
+    colors: ["Marinho/Branco", "Bordô/Bege"],
+    material: "algodao",
+    description: "Kit elegante para passeios especiais. Peças sofisticadas para seu bebê arrasar em qualquer ocasião. Inclui Conjunto Social (Paola Da Vinci), Sapatinho Mocassim (Pimpolho), Blazer Mini e Gravata Borboleta (Tip Top).",
+    images: [
+      "https://placehold.co/600x800/1E3A5F/FFFFFF?text=Kit+Passeio+Chique"
+    ],
+    videos: [],
+    items: [
+      { productId: 'conjunto-social', productName: "Conjunto Social Camisa + Calça", quantity: 1 },
+      { productId: 'sapatinho-mocassim', productName: "Sapatinho Mocassim", quantity: 1 },
+      { productId: 'blazer-mini', productName: "Blazer Mini", quantity: 1 },
+      { productId: 'gravata-borboleta', productName: "Gravata Borboleta", quantity: 1 }
+    ],
+    active: true,
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: '13',
+    name: "Kit Primeiros Dias",
+    brand: "basic",
+    gender: "unisex",
+    season: 'todas',
+    category: 'conjuntos',
+    ageRange: 'rn',
+    style: ['casual', 'basico'],
+    minQuantity: 10,
+    availability: 'em_estoque',
+    price: 78.50,
+    totalPieces: 7,
+    sizesAvailable: ["RN"],
+    colors: ["Branco", "Amarelo Claro", "Verde Água"],
+    material: "suedine",
+    description: "Kit essencial para recém-nascidos. Tudo que você precisa para os primeiros dias do bebê em casa. Inclui Body Kimono (3 un - Gerber), Calça com Pé (2 un - Carter's), Touca (Pimpolho), Meias RN (Tip Top).",
+    images: [
+      "https://placehold.co/600x800/FFFACD/31343C?text=Kit+Primeiros+Dias"
+    ],
+    videos: [],
+    items: [
+      { productId: 'body-kimono', productName: "Body Kimono Manga Longa", quantity: 3 },
+      { productId: 'calca-pe-rn', productName: "Calça com Pé RN", quantity: 2 },
+      { productId: 'touca-suedine', productName: "Touca Suedine", quantity: 1 },
+      { productId: 'meias-rn', productName: "Par de Meias RN", quantity: 1 }
+    ],
+    active: true,
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: '14',
+    name: "Kit Festinha",
+    brand: "luxury",
+    gender: "girl",
+    season: 'todas',
+    category: 'vestidos',
+    ageRange: 'baby',
+    style: ['festa', 'social'],
+    minQuantity: 1,
+    availability: 'promocao',
+    price: 95.00,
+    totalPieces: 4,
+    sizesAvailable: ["9-12 meses"],
+    colors: ["Rosa/Dourado", "Azul/Prata"],
+    material: "tule",
+    description: "Kit especial para festas e comemorações. Seu bebê será a estrela de qualquer evento! Inclui Vestido de Festa (Paraíso), Tiara com Laço (Pimpolho), Sapatilha de Festa e Calcinha Tapa Fralda (Tip Top/Carter's).",
+    images: [
+      "https://placehold.co/600x800/FFD700/31343C?text=Kit+Festinha"
+    ],
+    videos: [],
+    items: [
+      { productId: 'vestido-festa', productName: "Vestido de Festa com Tule", quantity: 1 },
+      { productId: 'tiara-laco', productName: "Tiara com Laço", quantity: 1 },
+      { productId: 'sapatilha-festa', productName: "Sapatilha de Festa", quantity: 1 },
+      { productId: 'calcinha-tapa-fralda', productName: "Calcinha Tapa Fralda", quantity: 1 }
+    ],
     active: true,
     createdAt: new Date().toISOString()
   }
