@@ -19,7 +19,7 @@ import { Dashboard } from './pages/admin/Dashboard';
 import { StockDashboard } from './pages/admin/StockDashboard';
 import { ProductList } from './pages/admin/ProductList';
 import { OrderList } from './pages/admin/OrderList';
-import { KitBuilder } from './pages/admin/KitBuilder';
+import { KitManager } from './pages/admin/KitManager';
 import { BulkImport } from './pages/admin/BulkImport';
 import { BrandManager } from './pages/admin/BrandManager';
 import { CategoryManager } from './pages/admin/CategoryManager'; // New Import
@@ -95,7 +95,7 @@ const App: React.FC = () => {
             <Route index element={<Dashboard />} />
             <Route path="pedidos" element={<OrderList />} />
             <Route path="stock" element={<StockDashboard />} />
-            <Route path="kits" element={<KitBuilder />} />
+            <Route path="kits" element={<KitManager />} />
             <Route path="products" element={<ProductList />} />
             <Route path="brands" element={<BrandManager />} />
             <Route path="import" element={<BulkImport />} />
