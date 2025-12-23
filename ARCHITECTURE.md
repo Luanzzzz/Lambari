@@ -28,46 +28,90 @@ Este documento detalha as decisões arquiteturais, padrões de código e prátic
 
 ## Decisões Arquiteturais
 
-### 1. LocalStorage ao invés de Supabase
+### 1. Supabase como Backend
 
-**Decisão**: Utilizar LocalStorage como camada de persistência ao invés de Supabase (que estava configurado).
+**Decisão**: Utilizar Supabase (PostgreSQL) como camada de persistência de dados.
 
 **Motivação**:
-- **Simplicidade de desenvolvimento**: Sem necessidade de configurar backend, autenticação ou infraestrutura
-- **Prototipagem rápida**: Ideal para demos e validação de conceito
-- **Sem dependências externas**: Funciona offline, sem necessidade de internet
-- **Deploy simplificado**: GitHub Pages ou Vercel sem configurações adicionais
-- **Custo zero**: Não há cobrança por armazenamento ou requisições
+- **Banco de dados real**: PostgreSQL robusto e escalável
+- **Autenticação integrada**: Sistema de auth pronto (preparado para uso futuro)
+- **Row Level Security (RLS)**: Controle de acesso a nível de banco de dados
+- **APIs automáticas**: REST e Realtime geradas automaticamente
+- **Relacionamentos complexos**: JOINs, FKs, CASCADE deletes
+- **Backup e recuperação**: Dados seguros e versionados
+- **Multi-dispositivo**: Acesso aos mesmos dados de qualquer lugar
 
-**Trade-offs**:
-| Vantagem | Desvantagem |
-|----------|-------------|
-| Desenvolvimento rápido | Dados apenas no navegador local |
-| Sem configuração de servidor | Limite de ~5-10MB |
-| Funciona offline | Sem sincronização multi-dispositivo |
-| Ideal para protótipo | Sem autenticação real |
-
-**Quando Migrar**:
-- Quando precisar de autenticação real
-- Quando dados precisarem ser acessados de múltiplos dispositivos
-- Quando volume de dados exceder 5MB
-- Quando precisar de backup e recuperação
-
-**Como Migrar**:
-```typescript
-// Substituir localStorage por fetch
-const getProducts = async () => {
-  // ANTES (LocalStorage)
-  const data = localStorage.getItem('products');
-  return JSON.parse(data);
-
-  // DEPOIS (API REST)
-  const response = await fetch('/api/products', {
-    headers: { 'Authorization': `Bearer ${token}` }
-  });
-  return response.json();
-};
+**Estrutura do Banco de Dados**:
+```sql
+-- Entidades principais
+products         → Produtos do catálogo
+brands           → Marcas dos produtos
+categories       → Categorias de produtos
+kits             → Kits de produtos
+sellers          → Vendedores
+banners          → Banners promocionais
+orders           → Pedidos de clientes
+order_items      → Itens dos pedidos (FK para orders)
+stock_movements  → Histórico de movimentações de estoque
 ```
+
+**Row Level Security (RLS)**:
+Todas as tabelas possuem políticas RLS para controle de acesso:
+```sql
+-- Exemplo: Somente produtos ativos são públicos
+CREATE POLICY "Produtos ativos são públicos"
+  ON products FOR SELECT
+  USING (active = true);
+
+-- Políticas temporárias para desenvolvimento (INSERT/UPDATE/DELETE com true)
+-- IMPORTANTE: Substituir por autenticação real em produção
+```
+
+**API Layer** ([services/api.ts](services/api.ts)):
+```typescript
+// Transformers para converter snake_case ↔ camelCase
+const transformProductFromDB = (dbProduct: any): Product => {
+  return {
+    id: dbProduct.id,
+    name: dbProduct.name,
+    sku: dbProduct.sku,
+    price: parseFloat(dbProduct.price),
+    category: dbProduct.category_id,
+    // ... conversão de campos
+  };
+};
+
+// CRUD operations com Supabase client
+async getProducts(): Promise<Product[]> {
+  const { data, error } = await supabase
+    .from('products')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+  return data.map(transformProductFromDB);
+}
+```
+
+**Relacionamentos**:
+- **orders → order_items**: CASCADE delete (ao deletar pedido, itens são removidos)
+- **order_items → products/kits**: CHECK constraint (deve ter product_id OU kit_id)
+- **products → brands**: FK brand_id
+- **products → categories**: FK category_id
+
+**Migrações**:
+Todas as migrações SQL estão versionadas em `supabase/migrations/`:
+- `001_initial_schema.sql` - Schema inicial
+- `002_allow_crud_products_brands_categories.sql` - RLS para produtos, marcas, categorias
+- `003_allow_crud_kits.sql` - RLS para kits
+- `004_allow_crud_stock_sellers_orders_banners.sql` - RLS para demais entidades
+
+**Próximos Passos (Produção)**:
+- [ ] Implementar autenticação real (Supabase Auth)
+- [ ] Substituir políticas RLS temporárias (`WITH CHECK (true)`) por autenticação
+- [ ] Adicionar rate limiting
+- [ ] Configurar backups automáticos
+- [ ] Adicionar monitoramento e logs
 
 ---
 
