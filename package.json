@@ -6,7 +6,18 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:supabase": "tsx scripts/test-supabase.ts",
+    "migrate": "tsx scripts/run-migration.ts",
+    "verify:schema": "tsx scripts/verify-schema.ts",
+    "test:products": "tsx scripts/test-product-crud.ts",
+    "test:brands": "tsx scripts/test-brands-crud.ts",
+    "test:categories": "tsx scripts/test-categories-crud.ts",
+    "test:kits": "tsx scripts/test-kits.ts",
+    "test:sellers": "tsx scripts/test-sellers.ts",
+    "test:banners": "tsx scripts/test-banners.ts",
+    "test:orders": "tsx scripts/test-orders.ts",
+    "test:all": "npm run test:products && npm run test:brands && npm run test:categories && npm run test:kits && npm run test:sellers && npm run test:banners && npm run test:orders"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.87.3",
@@ -25,6 +36,7 @@
     "@types/node": "^22.14.0",
     "@vercel/node": "^5.5.15",
     "@vitejs/plugin-react": "^5.0.0",
+    "tsx": "^4.19.2",
     "typescript": "~5.8.2",
     "vite": "^6.2.0"
   }
