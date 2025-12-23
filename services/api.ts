@@ -3,6 +3,21 @@ import { INITIAL_BRANDS, INITIAL_CATEGORIES, INITIAL_PRODUCTS, INITIAL_KITS, INI
 import { supabase } from './supabase';
 
 // ============================================
+// INTERFACES
+// ============================================
+
+export interface KitFilters {
+  search?: string;
+  gender?: string | string[];
+  brand?: string | string[];
+  category?: string | string[];
+  priceRange?: [number, number];
+  season?: string;
+  ageRange?: string;
+  availability?: string;
+}
+
+// ============================================
 // SUPABASE API
 // All entities fully migrated to Supabase ✅
 // No LocalStorage dependencies remaining
@@ -135,29 +150,66 @@ const transformCategoryFromDB = (dbCategory: any): Category => {
 };
 
 const transformKitFromDB = (dbKit: any): Kit => {
-  return {
+  console.log('🔄 Transformando kit do DB:', dbKit.name);
+
+  // CRITICAL FIX: Garantir que arrays existam e sejam arrays válidos
+  const ensureArray = (value: any): any[] => {
+    if (!value) return [];
+    if (Array.isArray(value)) return value;
+    // Se for string, tentar parsear JSON
+    if (typeof value === 'string') {
+      try {
+        const parsed = JSON.parse(value);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    }
+    // Se for objeto com length, converter para array
+    if (typeof value === 'object' && 'length' in value) {
+      return Array.from(value);
+    }
+    console.warn('⚠️ Valor não é array:', value);
+    return [];
+  };
+
+  const images = ensureArray(dbKit.images);
+  const videos = ensureArray(dbKit.videos);
+  const sizesAvailable = ensureArray(dbKit.sizes_available);
+  const colors = ensureArray(dbKit.colors);
+  const style = ensureArray(dbKit.style);
+
+  const transformedKit: Kit = {
     id: dbKit.id,
-    name: dbKit.name,
-    description: dbKit.description,
-    price: parseFloat(dbKit.price),
-    totalPieces: dbKit.total_pieces,
+    name: dbKit.name || '',
+    description: dbKit.description || '',
+    price: parseFloat(dbKit.price) || 0,
+    totalPieces: dbKit.total_pieces || 0,
     items: [], // Kit items are loaded separately
-    images: dbKit.images || [],
-    videos: dbKit.videos || [],
-    brand: dbKit.brand,
-    gender: dbKit.gender,
+    images: images,
+    videos: videos,
+    brand: dbKit.brand || '',
+    gender: dbKit.gender || 'unisex',
     season: dbKit.season,
     ageRange: dbKit.age_range,
-    style: dbKit.style || [],
+    style: style,
     category: dbKit.category,
     minQuantity: dbKit.min_quantity,
     availability: dbKit.availability,
-    sizesAvailable: dbKit.sizes_available || [],
-    colors: dbKit.colors || [],
-    material: dbKit.material,
-    active: dbKit.active,
+    sizesAvailable: sizesAvailable,
+    colors: colors,
+    material: dbKit.material || '',
+    active: dbKit.active !== false,
     createdAt: dbKit.created_at,
   };
+
+  console.log('✅ Kit transformado:', {
+    name: transformedKit.name,
+    images: transformedKit.images.length,
+    videos: transformedKit.videos.length,
+  });
+
+  return transformedKit;
 };
 
 const transformStockMovementFromDB = (dbMovement: any): StockMovement => {
@@ -461,20 +513,115 @@ class ApiService {
   }
 
   // === KITS ===
-  async getKits(): Promise<Kit[]> {
+  async getKits(filters?: KitFilters): Promise<Kit[]> {
     await delay();
+
+    console.log('📦 API: Buscando kits...', filters ? 'com filtros' : 'sem filtros');
 
     try {
       const { data, error } = await supabase
         .from('kits')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false});
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Erro do Supabase:', error);
+        throw error;
+      }
 
-      return (data || []).map(transformKitFromDB);
+      console.log('📦 Kits retornados do Supabase:', data?.length || 0);
+
+      // CRITICAL FIX: Garantir que data é array
+      if (!data || !Array.isArray(data)) {
+        console.warn('⚠️ Data não é array:', data);
+        return [];
+      }
+
+      // Transformar cada kit com tratamento de erro individual
+      const kits: Kit[] = [];
+
+      for (const dbKit of data) {
+        try {
+          const kit = transformKitFromDB(dbKit);
+          kits.push(kit);
+        } catch (err) {
+          console.error('❌ Erro ao transformar kit:', dbKit.name, err);
+          // Continua processando outros kits
+        }
+      }
+
+      // Log detalhado de cada kit
+      kits.forEach(kit => {
+        console.log(`   Kit: ${kit.name}`, {
+          images: kit.images?.length || 0,
+          videos: kit.videos?.length || 0,
+        });
+      });
+
+      // Aplicar filtros se fornecidos
+      let filteredKits = kits;
+
+      if (filters) {
+        // Filtro por search (nome)
+        if (filters.search) {
+          const searchLower = filters.search.toLowerCase();
+          filteredKits = filteredKits.filter(kit =>
+            kit.name.toLowerCase().includes(searchLower) ||
+            kit.description?.toLowerCase().includes(searchLower)
+          );
+        }
+
+        // Filtro por gênero
+        if (filters.gender) {
+          const genders = Array.isArray(filters.gender) ? filters.gender : [filters.gender];
+          if (genders.length > 0) {
+            filteredKits = filteredKits.filter(kit => genders.includes(kit.gender));
+          }
+        }
+
+        // Filtro por marca
+        if (filters.brand) {
+          const brands = Array.isArray(filters.brand) ? filters.brand : [filters.brand];
+          if (brands.length > 0) {
+            filteredKits = filteredKits.filter(kit => brands.includes(kit.brand));
+          }
+        }
+
+        // Filtro por categoria
+        if (filters.category) {
+          const categories = Array.isArray(filters.category) ? filters.category : [filters.category];
+          if (categories.length > 0) {
+            filteredKits = filteredKits.filter(kit => categories.includes(kit.category || ''));
+          }
+        }
+
+        // Filtro por faixa de preço
+        if (filters.priceRange) {
+          const [min, max] = filters.priceRange;
+          filteredKits = filteredKits.filter(kit => kit.price >= min && kit.price <= max);
+        }
+
+        // Filtro por temporada
+        if (filters.season) {
+          filteredKits = filteredKits.filter(kit => kit.season === filters.season);
+        }
+
+        // Filtro por faixa etária
+        if (filters.ageRange) {
+          filteredKits = filteredKits.filter(kit => kit.ageRange === filters.ageRange);
+        }
+
+        // Filtro por disponibilidade
+        if (filters.availability) {
+          filteredKits = filteredKits.filter(kit => kit.availability === filters.availability);
+        }
+
+        console.log('📦 Kits após aplicar filtros:', filteredKits.length);
+      }
+
+      return filteredKits;
     } catch (error: any) {
-      console.error('Erro ao buscar kits:', error.message);
+      console.error('❌ Erro ao buscar kits:', error.message);
       throw new Error('Falha ao carregar kits do servidor');
     }
   }
@@ -561,15 +708,24 @@ class ApiService {
   async deleteKit(id: string): Promise<void> {
     await delay();
 
+    console.log('🗑️ API: Tentando deletar kit', id);
+
     try {
-      const { error } = await supabase
+      const { error, status, statusText } = await supabase
         .from('kits')
         .delete()
         .eq('id', id);
 
-      if (error) throw error;
+      console.log('📡 Resposta do Supabase:', { error, status, statusText });
+
+      if (error) {
+        console.error('❌ Erro do Supabase:', error);
+        throw error;
+      }
+
+      console.log('✅ Kit deletado com sucesso no Supabase');
     } catch (error: any) {
-      console.error('Erro ao deletar kit:', error.message);
+      console.error('❌ Erro ao deletar kit:', error.message);
       throw new Error('Falha ao deletar kit do servidor');
     }
   }
@@ -771,15 +927,24 @@ class ApiService {
   async deleteProduct(id: string): Promise<void> {
     await delay();
 
+    console.log('🗑️ API: Tentando deletar produto', id);
+
     try {
-      const { error } = await supabase
+      const { error, status, statusText } = await supabase
         .from('products')
         .delete()
         .eq('id', id);
 
-      if (error) throw error;
+      console.log('📡 Resposta do Supabase:', { error, status, statusText });
+
+      if (error) {
+        console.error('❌ Erro do Supabase:', error);
+        throw error;
+      }
+
+      console.log('✅ Produto deletado com sucesso no Supabase');
     } catch (error: any) {
-      console.error('Erro ao deletar produto:', error.message);
+      console.error('❌ Erro ao deletar produto:', error.message);
       throw new Error('Falha ao deletar produto do servidor');
     }
   }
