@@ -315,6 +315,17 @@ export const KitForm: React.FC<KitFormProps> = ({ initialData, onClose, onSucces
                             />
                         </div>
 
+                        {/* Videos */}
+                        <div className="space-y-4 border-t border-gray-100 pt-4">
+                            <label className="block text-sm font-medium text-gray-700">Vídeos</label>
+                            <MediaUploader
+                                type="video"
+                                files={kitVideos}
+                                onFilesChange={safeSetKitVideos}
+                                maxFiles={3}
+                            />
+                        </div>
+
                         <div className="space-y-4 border-t border-gray-100 pt-4">
                             <label className="block text-sm font-medium text-gray-700">Descrição</label>
                             <textarea
