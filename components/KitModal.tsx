@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { X, MessageCircle, ShoppingCart, Heart, ChevronLeft, ChevronRight, Check } from 'lucide-react';
+import { X, MessageCircle, ShoppingCart, Heart, ChevronLeft, ChevronRight, Check, Video } from 'lucide-react';
 import { Kit, Brand } from '../types';
 import { Button } from './ui/Button';
 import { useShop } from '../context/ShopContext';
@@ -186,6 +186,32 @@ export const KitModal: React.FC<KitModalProps> = ({ kit, isOpen, onClose, brands
               ))}
             </div>
           </div>
+
+          {/* Videos Section */}
+          {kit.videos && kit.videos.length > 0 && (
+            <div className="mb-8 border-t border-gray-100 pt-6">
+              <h3 className="font-bold text-gray-900 mb-4 text-sm uppercase tracking-wide flex items-center gap-2">
+                <Video size={16} className="text-purple-600" />
+                Vídeos do Kit ({kit.videos.length})
+              </h3>
+
+              <div className="grid grid-cols-1 gap-4">
+                {kit.videos.map((videoUrl, index) => (
+                  <div key={index} className="aspect-video bg-gray-100 rounded-xl overflow-hidden border-2 border-purple-100 shadow-sm">
+                    <video
+                      src={videoUrl}
+                      controls
+                      className="w-full h-full object-cover"
+                      preload="metadata"
+                    >
+                      <source src={videoUrl} type="video/mp4" />
+                      Seu navegador não suporta vídeos.
+                    </video>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Actions Footer */}
           <div className="mt-auto pt-6 flex gap-3 border-t border-gray-100">

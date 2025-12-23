@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Kit, Brand } from '../types';
-import { Eye, ShoppingCart, Heart, Package, Layers } from 'lucide-react';
+import { Eye, ShoppingCart, Heart, Package, Layers, Video } from 'lucide-react';
 import { useShop } from '../context/ShopContext';
 import { Button } from './ui/Button';
 import { formatPrice, formatInstallment } from '../utils/formatters';
@@ -101,7 +101,35 @@ export const KitCard: React.FC<KitCardProps> = ({ kit, onClick, brands }) => {
             <Layers size={12} className="text-primary" />
             <span>Variados</span>
           </div>
+          {kit.videos && kit.videos.length > 0 && (
+            <div className="flex items-center gap-1 bg-purple-50 px-2 py-1 rounded">
+              <Video size={12} className="text-purple-600" />
+              <span className="text-purple-600 font-medium">{kit.videos.length} vídeo{kit.videos.length > 1 ? 's' : ''}</span>
+            </div>
+          )}
         </div>
+
+        {/* Videos Preview */}
+        {kit.videos && kit.videos.length > 0 && (
+          <div className="mb-3">
+            <div className="aspect-video bg-gray-100 rounded-lg overflow-hidden border-2 border-purple-100">
+              <video
+                src={kit.videos[0]}
+                className="w-full h-full object-cover"
+                preload="metadata"
+                muted
+                onClick={(e) => { e.stopPropagation(); }}
+              >
+                Seu navegador não suporta vídeos.
+              </video>
+            </div>
+            {kit.videos.length > 1 && (
+              <p className="text-xs text-purple-600 mt-1 font-medium">
+                +{kit.videos.length - 1} vídeo{kit.videos.length - 1 > 1 ? 's' : ''} disponíve{kit.videos.length - 1 > 1 ? 'is' : 'l'}
+              </p>
+            )}
+          </div>
+        )}
 
         {/* Price */}
         <div className="mt-auto pt-2 border-t border-gray-50">

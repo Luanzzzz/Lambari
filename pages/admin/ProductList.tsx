@@ -39,14 +39,43 @@ export const ProductList: React.FC = () => {
   }, []);
 
   const handleDelete = async (id: string) => {
-    if (window.confirm('Tem certeza que deseja excluir este produto?')) {
-      try {
-        await api.deleteProduct(id);
-        toast.success('Produto excluído');
-        loadProducts();
-      } catch (e) {
-        toast.error('Erro ao excluir');
-      }
+    const product = products.find(p => p.id === id);
+    const productName = product?.name || 'produto';
+
+    console.log('🗑️ Tentando deletar produto:', { id, name: productName });
+
+    const confirmDelete = window.confirm(
+      `Tem certeza que deseja excluir o produto "${productName}"?\n\nEsta ação não pode ser desfeita.`
+    );
+
+    if (!confirmDelete) {
+      console.log('❌ Usuário cancelou a exclusão');
+      return;
+    }
+
+    console.log('✅ Usuário confirmou. Chamando API...');
+
+    try {
+      toast.loading('Excluindo produto...', { id: 'delete-product' });
+
+      await api.deleteProduct(id);
+
+      console.log('✅ API respondeu com sucesso');
+
+      await loadProducts();
+
+      toast.success('Produto excluído com sucesso!', { id: 'delete-product' });
+
+      console.log('✅ Exclusão completa');
+    } catch (error: any) {
+      console.error('❌ ERRO AO DELETAR:', error);
+      console.error('   Mensagem:', error.message);
+      console.error('   Stack:', error.stack);
+
+      toast.error(
+        error.message || 'Erro ao excluir produto. Verifique o console.',
+        { id: 'delete-product' }
+      );
     }
   };
 

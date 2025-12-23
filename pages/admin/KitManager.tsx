@@ -31,14 +31,43 @@ export const KitManager: React.FC = () => {
     }, []);
 
     const handleDelete = async (id: string) => {
-        if (window.confirm('Tem certeza que deseja excluir este kit?')) {
-            try {
-                await api.deleteKit(id);
-                toast.success('Kit excluído');
-                loadKits();
-            } catch (e) {
-                toast.error('Erro ao excluir');
-            }
+        const kit = kits.find(k => k.id === id);
+        const kitName = kit?.name || 'kit';
+
+        console.log('🗑️ Tentando deletar kit:', { id, name: kitName });
+
+        const confirmDelete = window.confirm(
+            `Tem certeza que deseja excluir o kit "${kitName}"?\n\nEsta ação não pode ser desfeita.`
+        );
+
+        if (!confirmDelete) {
+            console.log('❌ Usuário cancelou a exclusão');
+            return;
+        }
+
+        console.log('✅ Usuário confirmou. Chamando API...');
+
+        try {
+            toast.loading('Excluindo kit...', { id: 'delete-kit' });
+
+            await api.deleteKit(id);
+
+            console.log('✅ API respondeu com sucesso');
+
+            await loadKits();
+
+            toast.success('Kit excluído com sucesso!', { id: 'delete-kit' });
+
+            console.log('✅ Exclusão completa');
+        } catch (error: any) {
+            console.error('❌ ERRO AO DELETAR:', error);
+            console.error('   Mensagem:', error.message);
+            console.error('   Stack:', error.stack);
+
+            toast.error(
+                error.message || 'Erro ao excluir kit. Verifique o console.',
+                { id: 'delete-kit' }
+            );
         }
     };
 
