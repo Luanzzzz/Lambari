@@ -11,8 +11,8 @@ export interface KitFilters {
   gender?: string | string[];
   brand?: string | string[];
   category?: string | string[];
-  priceRange?: [number, number];
-  season?: string;
+  priceRange?: { min: number; max: number } | [number, number];
+  season?: string | string[];
   ageRange?: string;
   availability?: string;
 }
@@ -597,13 +597,18 @@ class ApiService {
 
         // Filtro por faixa de preço
         if (filters.priceRange) {
-          const [min, max] = filters.priceRange;
+          // Suporta tanto objeto { min, max } quanto array [min, max]
+          const min = Array.isArray(filters.priceRange) ? filters.priceRange[0] : filters.priceRange.min;
+          const max = Array.isArray(filters.priceRange) ? filters.priceRange[1] : filters.priceRange.max;
           filteredKits = filteredKits.filter(kit => kit.price >= min && kit.price <= max);
         }
 
         // Filtro por temporada
         if (filters.season) {
-          filteredKits = filteredKits.filter(kit => kit.season === filters.season);
+          const seasons = Array.isArray(filters.season) ? filters.season : [filters.season];
+          if (seasons.length > 0) {
+            filteredKits = filteredKits.filter(kit => seasons.includes(kit.season || ''));
+          }
         }
 
         // Filtro por faixa etária
