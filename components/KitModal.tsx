@@ -187,29 +187,80 @@ export const KitModal: React.FC<KitModalProps> = ({ kit, isOpen, onClose, brands
             </div>
           </div>
 
-          {/* Videos Section */}
+          {/* Videos Section - Versão Melhorada */}
           {kit.videos && kit.videos.length > 0 && (
-            <div className="mb-8 border-t border-gray-100 pt-6">
-              <h3 className="font-bold text-gray-900 mb-4 text-sm uppercase tracking-wide flex items-center gap-2">
-                <Video size={16} className="text-purple-600" />
-                Vídeos do Kit ({kit.videos.length})
-              </h3>
-
-              <div className="grid grid-cols-1 gap-4">
-                {kit.videos.map((videoUrl, index) => (
-                  <div key={index} className="aspect-video bg-gray-100 rounded-xl overflow-hidden border-2 border-purple-100 shadow-sm">
-                    <video
-                      src={videoUrl}
-                      controls
-                      className="w-full h-full object-cover"
-                      preload="metadata"
-                    >
-                      <source src={videoUrl} type="video/mp4" />
-                      Seu navegador não suporta vídeos.
-                    </video>
-                  </div>
-                ))}
+            <div className="border-t border-gray-200 pt-6 mt-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <Video size={20} className="text-primary" />
+                  <h3 className="font-semibold text-lg text-gray-900">
+                    Vídeos do Kit
+                  </h3>
+                </div>
+                <span className="text-sm text-gray-500 bg-gray-50 px-3 py-1 rounded-full">
+                  {kit.videos.length} {kit.videos.length === 1 ? 'vídeo' : 'vídeos'}
+                </span>
               </div>
+
+              {/* Vídeo único (se só tiver 1) */}
+              {kit.videos.length === 1 ? (
+                <div className="aspect-video bg-gray-900 rounded-lg overflow-hidden shadow-lg">
+                  <video
+                    src={kit.videos[0]}
+                    controls
+                    className="w-full h-full object-contain"
+                    preload="metadata"
+                    controlsList="nodownload"
+                  >
+                    <source src={kit.videos[0]} type="video/mp4" />
+                    Seu navegador não suporta vídeos.
+                  </video>
+                </div>
+              ) : (
+                /* Grid de múltiplos vídeos com expansão */
+                <div className="space-y-3">
+                  {kit.videos.map((videoUrl, index) => (
+                    <details key={index} className="group">
+                      <summary className="cursor-pointer list-none">
+                        <div className="flex items-center gap-3 p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors">
+                          <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                            <Video size={20} className="text-primary" />
+                          </div>
+                          <div className="flex-1">
+                            <p className="font-medium text-gray-900">Vídeo {index + 1}</p>
+                            <p className="text-xs text-gray-500">Clique para expandir e assistir</p>
+                          </div>
+                          <div className="text-gray-400 group-open:rotate-180 transition-transform">
+                            <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                            </svg>
+                          </div>
+                        </div>
+                      </summary>
+                      <div className="mt-2 aspect-video bg-gray-900 rounded-lg overflow-hidden shadow-md">
+                        <video
+                          src={videoUrl}
+                          controls
+                          className="w-full h-full object-contain"
+                          preload="metadata"
+                          controlsList="nodownload"
+                        >
+                          <source src={videoUrl} type="video/mp4" />
+                          Seu navegador não suporta vídeos.
+                        </video>
+                      </div>
+                    </details>
+                  ))}
+                </div>
+              )}
+
+              {/* Informação extra */}
+              <p className="text-sm text-gray-500 mt-3 flex items-center gap-1">
+                <span className="inline-block w-2 h-2 bg-green-500 rounded-full"></span>
+                {kit.videos.length === 1
+                  ? 'Clique no vídeo para assistir em tela cheia'
+                  : 'Clique em cada vídeo para expandir e assistir'}
+              </p>
             </div>
           )}
 
