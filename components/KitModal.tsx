@@ -25,8 +25,19 @@ export const KitModal: React.FC<KitModalProps> = ({ kit, isOpen, onClose, brands
 
   if (!isOpen || !kit) return null;
 
-  const images = kit.images && kit.images.length > 0 ? kit.images : ['https://placehold.co/600x800?text=Sem+Imagem'];
+  // Combinar imagens e vídeos em um único array de mídia
+  const mediaItems: { type: 'image' | 'video'; url: string }[] = [
+    ...(kit.images || []).map(url => ({ type: 'image' as const, url })),
+    ...(kit.videos || []).map(url => ({ type: 'video' as const, url }))
+  ];
+
+  // Fallback se não houver mídia
+  if (mediaItems.length === 0) {
+    mediaItems.push({ type: 'image', url: 'https://placehold.co/600x800?text=Sem+Imagem' });
+  }
+
   const isFavorited = isInWishlist(kit.id);
+  const currentMedia = mediaItems[currentImageIndex];
 
   const getBrandDetails = (brandId: string) => {
     const brand = brands?.find(b => b.id === brandId);
@@ -46,8 +57,8 @@ export const KitModal: React.FC<KitModalProps> = ({ kit, isOpen, onClose, brands
     }, 600);
   };
 
-  const nextImage = () => setCurrentImageIndex((prev) => (prev + 1) % images.length);
-  const prevImage = () => setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length);
+  const nextImage = () => setCurrentImageIndex((prev) => (prev + 1) % mediaItems.length);
+  const prevImage = () => setCurrentImageIndex((prev) => (prev - 1 + mediaItems.length) % mediaItems.length);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 animate-[fadeIn_0.2s_ease-out]">
@@ -64,17 +75,40 @@ export const KitModal: React.FC<KitModalProps> = ({ kit, isOpen, onClose, brands
           <X size={24} />
         </button>
 
-        {/* LEFT: Image Gallery */}
+        {/* LEFT: Image/Video Gallery - Carrossel Unificado */}
         <div className="w-full md:w-1/2 bg-gray-50 flex flex-col relative md:h-full">
           <div className="relative flex-1 bg-gray-100 overflow-hidden">
-            <img
-              src={images[currentImageIndex]}
-              alt={kit.name}
-              className="w-full h-full object-contain md:object-cover"
-            />
+            {/* Renderizar Imagem ou Vídeo baseado no tipo */}
+            {currentMedia.type === 'image' ? (
+              <img
+                src={currentMedia.url}
+                alt={kit.name}
+                className="w-full h-full object-contain md:object-cover"
+              />
+            ) : (
+              <div className="relative w-full h-full bg-black flex items-center justify-center">
+                <video
+                  src={currentMedia.url}
+                  className="w-full h-full object-contain"
+                  controls
+                  preload="metadata"
+                  playsInline
+                  controlsList="nodownload"
+                >
+                  <source src={currentMedia.url} type="video/mp4" />
+                  Seu navegador não suporta vídeos.
+                </video>
+
+                {/* Badge de vídeo */}
+                <div className="absolute top-4 left-4 px-3 py-1.5 bg-black/70 text-white text-xs font-bold rounded-full flex items-center gap-1.5 z-10">
+                  <Video size={14} />
+                  Vídeo
+                </div>
+              </div>
+            )}
 
             {/* Navigation Arrows */}
-            {images.length > 1 && (
+            {mediaItems.length > 1 && (
               <>
                 <button
                   onClick={prevImage}
@@ -91,23 +125,37 @@ export const KitModal: React.FC<KitModalProps> = ({ kit, isOpen, onClose, brands
               </>
             )}
 
-            {/* Counter */}
-            <div className="absolute bottom-4 right-4 bg-black/60 text-white text-xs px-3 py-1 rounded-full font-medium">
-              {currentImageIndex + 1} / {images.length}
+            {/* Counter com info de mídia */}
+            <div className="absolute bottom-4 right-4 bg-black/60 text-white text-xs px-3 py-1 rounded-full font-medium flex items-center gap-2">
+              <span>{currentImageIndex + 1} / {mediaItems.length}</span>
+              {kit.images?.length > 0 && <span>• {kit.images.length} fotos</span>}
+              {kit.videos && kit.videos.length > 0 && <span>• {kit.videos.length} vídeo{kit.videos.length > 1 ? 's' : ''}</span>}
             </div>
           </div>
 
-          {/* Thumbnails */}
-          {images.length > 1 && (
+          {/* Thumbnails - Agora incluindo vídeos */}
+          {mediaItems.length > 1 && (
             <div className="p-4 flex gap-3 overflow-x-auto bg-white border-t border-gray-100 hidden md:flex">
-              {images.map((img, idx) => (
+              {mediaItems.map((media, idx) => (
                 <button
                   key={idx}
                   onClick={() => setCurrentImageIndex(idx)}
-                  className={`w-16 h-20 rounded-lg overflow-hidden flex-shrink-0 border-2 transition-all ${idx === currentImageIndex ? 'border-primary opacity-100 ring-2 ring-primary/20' : 'border-transparent opacity-60 hover:opacity-100'
+                  className={`w-16 h-20 rounded-lg overflow-hidden flex-shrink-0 border-2 transition-all relative ${idx === currentImageIndex ? 'border-primary opacity-100 ring-2 ring-primary/20' : 'border-transparent opacity-60 hover:opacity-100'
                     }`}
                 >
-                  <img src={img} alt="" className="w-full h-full object-cover" />
+                  {media.type === 'image' ? (
+                    <img src={media.url} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full bg-gray-800 flex items-center justify-center">
+                      <Video size={20} className="text-white" />
+                    </div>
+                  )}
+                  {/* Badge de vídeo no thumbnail */}
+                  {media.type === 'video' && (
+                    <div className="absolute bottom-1 right-1 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center">
+                      <Video size={10} className="text-white" />
+                    </div>
+                  )}
                 </button>
               ))}
             </div>
@@ -187,79 +235,12 @@ export const KitModal: React.FC<KitModalProps> = ({ kit, isOpen, onClose, brands
             </div>
           </div>
 
-          {/* Videos Section - Versão Melhorada */}
+          {/* Nota sobre vídeos integrados no carrossel */}
           {kit.videos && kit.videos.length > 0 && (
-            <div className="border-t border-gray-200 pt-6 mt-6">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <Video size={20} className="text-primary" />
-                  <h3 className="font-semibold text-lg text-gray-900">
-                    Vídeos do Kit
-                  </h3>
-                </div>
-                <span className="text-sm text-gray-500 bg-gray-50 px-3 py-1 rounded-full">
-                  {kit.videos.length} {kit.videos.length === 1 ? 'vídeo' : 'vídeos'}
-                </span>
-              </div>
-
-              {/* Vídeo único (se só tiver 1) */}
-              {kit.videos.length === 1 ? (
-                <div className="aspect-video bg-gray-900 rounded-lg overflow-hidden shadow-lg">
-                  <video
-                    src={kit.videos[0]}
-                    controls
-                    className="w-full h-full object-contain"
-                    preload="metadata"
-                    controlsList="nodownload"
-                  >
-                    <source src={kit.videos[0]} type="video/mp4" />
-                    Seu navegador não suporta vídeos.
-                  </video>
-                </div>
-              ) : (
-                /* Grid de múltiplos vídeos com expansão */
-                <div className="space-y-3">
-                  {kit.videos.map((videoUrl, index) => (
-                    <details key={index} className="group">
-                      <summary className="cursor-pointer list-none">
-                        <div className="flex items-center gap-3 p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors">
-                          <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
-                            <Video size={20} className="text-primary" />
-                          </div>
-                          <div className="flex-1">
-                            <p className="font-medium text-gray-900">Vídeo {index + 1}</p>
-                            <p className="text-xs text-gray-500">Clique para expandir e assistir</p>
-                          </div>
-                          <div className="text-gray-400 group-open:rotate-180 transition-transform">
-                            <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-                            </svg>
-                          </div>
-                        </div>
-                      </summary>
-                      <div className="mt-2 aspect-video bg-gray-900 rounded-lg overflow-hidden shadow-md">
-                        <video
-                          src={videoUrl}
-                          controls
-                          className="w-full h-full object-contain"
-                          preload="metadata"
-                          controlsList="nodownload"
-                        >
-                          <source src={videoUrl} type="video/mp4" />
-                          Seu navegador não suporta vídeos.
-                        </video>
-                      </div>
-                    </details>
-                  ))}
-                </div>
-              )}
-
-              {/* Informação extra */}
-              <p className="text-sm text-gray-500 mt-3 flex items-center gap-1">
-                <span className="inline-block w-2 h-2 bg-green-500 rounded-full"></span>
-                {kit.videos.length === 1
-                  ? 'Clique no vídeo para assistir em tela cheia'
-                  : 'Clique em cada vídeo para expandir e assistir'}
+            <div className="bg-purple-50 border border-purple-100 rounded-lg p-3 flex items-center gap-3">
+              <Video size={20} className="text-purple-600 flex-shrink-0" />
+              <p className="text-sm text-purple-700">
+                <span className="font-medium">{kit.videos.length} vídeo{kit.videos.length > 1 ? 's' : ''}</span> disponíve{kit.videos.length > 1 ? 'is' : 'l'} no carrossel de imagens à esquerda.
               </p>
             </div>
           )}

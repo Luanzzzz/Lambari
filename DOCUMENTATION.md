@@ -1637,6 +1637,6 @@ A documentação técnica fornece um guia completo para desenvolvedores que dese
 ---
 
 **Versão da Documentação**: 1.0
-**Data**: 2025-01-19
-**Autor**: Claude Sonnet 4.5
-**Projeto**: Lambari Kids B2B
+**Data**: 2025-12-23
+**Autor**: luan
+**Projeto**: Lambari
