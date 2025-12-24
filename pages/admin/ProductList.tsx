@@ -4,6 +4,7 @@ import { api } from '../../services/api';
 import { Product } from '../../types';
 import { Plus, Edit2, Trash2, ChevronDown, ChevronUp, Check, X, FileSpreadsheet, Power } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
+import { ConfirmModal } from '../../components/ui/ConfirmModal';
 import { ImportModal } from '../../components/ImportModal';
 import { ProductForm } from './ProductForm';
 import toast from 'react-hot-toast';
@@ -22,6 +23,11 @@ export const ProductList: React.FC = () => {
   const [editingPriceId, setEditingPriceId] = useState<string | null>(null);
   const [tempPrice, setTempPrice] = useState<string>('');
 
+  // Estado para o modal de confirmação de exclusão
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [deletingProduct, setDeletingProduct] = useState<Product | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
   const loadProducts = async () => {
     try {
       const data = await api.getProducts();
@@ -38,27 +44,31 @@ export const ProductList: React.FC = () => {
     loadProducts();
   }, []);
 
-  const handleDelete = async (id: string) => {
-    const product = products.find(p => p.id === id);
-    const productName = product?.name || 'produto';
+  // Abre o modal de confirmação
+  const openDeleteModal = (product: Product) => {
+    console.log('🗑️ Abrindo modal para deletar produto:', { id: product.id, name: product.name });
+    setDeletingProduct(product);
+    setDeleteModalOpen(true);
+  };
 
-    console.log('🗑️ Tentando deletar produto:', { id, name: productName });
+  // Fecha o modal de confirmação
+  const closeDeleteModal = () => {
+    console.log('❌ Modal de exclusão fechado');
+    setDeleteModalOpen(false);
+    setDeletingProduct(null);
+  };
 
-    const confirmDelete = window.confirm(
-      `Tem certeza que deseja excluir o produto "${productName}"?\n\nEsta ação não pode ser desfeita.`
-    );
-
-    if (!confirmDelete) {
-      console.log('❌ Usuário cancelou a exclusão');
-      return;
-    }
+  // Executa a exclusão após confirmação
+  const confirmDelete = async () => {
+    if (!deletingProduct) return;
 
     console.log('✅ Usuário confirmou. Chamando API...');
+    setIsDeleting(true);
 
     try {
       toast.loading('Excluindo produto...', { id: 'delete-product' });
 
-      await api.deleteProduct(id);
+      await api.deleteProduct(deletingProduct.id);
 
       console.log('✅ API respondeu com sucesso');
 
@@ -76,6 +86,9 @@ export const ProductList: React.FC = () => {
         error.message || 'Erro ao excluir produto. Verifique o console.',
         { id: 'delete-product' }
       );
+    } finally {
+      setIsDeleting(false);
+      closeDeleteModal();
     }
   };
 
@@ -232,7 +245,7 @@ export const ProductList: React.FC = () => {
                       <button onClick={() => openEditProduct(p)} className="text-blue-600 hover:text-blue-800 p-1">
                         <Edit2 size={18} />
                       </button>
-                      <button onClick={() => handleDelete(p.id)} className="text-red-500 hover:text-red-700 p-1">
+                      <button onClick={() => openDeleteModal(p)} className="text-red-500 hover:text-red-700 p-1">
                         <Trash2 size={18} />
                       </button>
                     </td>
@@ -286,6 +299,19 @@ export const ProductList: React.FC = () => {
         isOpen={isImportOpen}
         onClose={() => setIsImportOpen(false)}
         onSuccess={() => { setIsImportOpen(false); loadProducts(); }}
+      />
+
+      {/* Modal de Confirmação de Exclusão */}
+      <ConfirmModal
+        isOpen={deleteModalOpen}
+        title="Excluir Produto"
+        message={`Tem certeza que deseja excluir o produto "${deletingProduct?.name}"? Esta ação não pode ser desfeita.`}
+        onConfirm={confirmDelete}
+        onCancel={closeDeleteModal}
+        confirmText="Excluir"
+        cancelText="Cancelar"
+        variant="danger"
+        isLoading={isDeleting}
       />
     </div>
   );

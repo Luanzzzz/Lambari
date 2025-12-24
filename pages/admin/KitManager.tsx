@@ -4,6 +4,7 @@ import { api } from '../../services/api';
 import { Kit } from '../../types';
 import { Plus, Edit2, Trash2, Package, Search } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
+import { ConfirmModal } from '../../components/ui/ConfirmModal';
 import { KitForm } from './KitForm';
 import toast from 'react-hot-toast';
 
@@ -13,6 +14,11 @@ export const KitManager: React.FC = () => {
     const [view, setView] = useState<'list' | 'form'>('list');
     const [editingKit, setEditingKit] = useState<Kit | undefined>(undefined);
     const [searchTerm, setSearchTerm] = useState('');
+
+    // Estado para o modal de confirmação de exclusão
+    const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+    const [deletingKit, setDeletingKit] = useState<Kit | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     const loadKits = async () => {
         setLoading(true);
@@ -30,27 +36,31 @@ export const KitManager: React.FC = () => {
         loadKits();
     }, []);
 
-    const handleDelete = async (id: string) => {
-        const kit = kits.find(k => k.id === id);
-        const kitName = kit?.name || 'kit';
+    // Abre o modal de confirmação
+    const openDeleteModal = (kit: Kit) => {
+        console.log('🗑️ Abrindo modal para deletar kit:', { id: kit.id, name: kit.name });
+        setDeletingKit(kit);
+        setDeleteModalOpen(true);
+    };
 
-        console.log('🗑️ Tentando deletar kit:', { id, name: kitName });
+    // Fecha o modal de confirmação
+    const closeDeleteModal = () => {
+        console.log('❌ Modal de exclusão fechado');
+        setDeleteModalOpen(false);
+        setDeletingKit(null);
+    };
 
-        const confirmDelete = window.confirm(
-            `Tem certeza que deseja excluir o kit "${kitName}"?\n\nEsta ação não pode ser desfeita.`
-        );
-
-        if (!confirmDelete) {
-            console.log('❌ Usuário cancelou a exclusão');
-            return;
-        }
+    // Executa a exclusão após confirmação
+    const confirmDelete = async () => {
+        if (!deletingKit) return;
 
         console.log('✅ Usuário confirmou. Chamando API...');
+        setIsDeleting(true);
 
         try {
             toast.loading('Excluindo kit...', { id: 'delete-kit' });
 
-            await api.deleteKit(id);
+            await api.deleteKit(deletingKit.id);
 
             console.log('✅ API respondeu com sucesso');
 
@@ -68,6 +78,9 @@ export const KitManager: React.FC = () => {
                 error.message || 'Erro ao excluir kit. Verifique o console.',
                 { id: 'delete-kit' }
             );
+        } finally {
+            setIsDeleting(false);
+            closeDeleteModal();
         }
     };
 
@@ -179,7 +192,7 @@ export const KitManager: React.FC = () => {
                                         <button onClick={() => startEdit(kit)} className="text-blue-600 hover:text-blue-800 p-2 rounded hover:bg-blue-50">
                                             <Edit2 size={18} />
                                         </button>
-                                        <button onClick={() => handleDelete(kit.id)} className="text-red-500 hover:text-red-700 p-2 rounded hover:bg-red-50">
+                                        <button onClick={() => openDeleteModal(kit)} className="text-red-500 hover:text-red-700 p-2 rounded hover:bg-red-50">
                                             <Trash2 size={18} />
                                         </button>
                                     </td>
@@ -189,6 +202,19 @@ export const KitManager: React.FC = () => {
                     </tbody>
                 </table>
             </div>
+
+            {/* Modal de Confirmação de Exclusão */}
+            <ConfirmModal
+                isOpen={deleteModalOpen}
+                title="Excluir Kit"
+                message={`Tem certeza que deseja excluir o kit "${deletingKit?.name}"? Esta ação não pode ser desfeita.`}
+                onConfirm={confirmDelete}
+                onCancel={closeDeleteModal}
+                confirmText="Excluir"
+                cancelText="Cancelar"
+                variant="danger"
+                isLoading={isDeleting}
+            />
         </div>
     );
 };
