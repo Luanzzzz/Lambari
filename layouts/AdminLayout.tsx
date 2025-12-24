@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Package, Tag, LogOut, ShoppingCart, Layers, BarChart2, FileSpreadsheet, Hexagon } from 'lucide-react';
+import { LayoutDashboard, Package, Tag, LogOut, ShoppingCart, Layers, BarChart2, FileSpreadsheet, Hexagon, Image } from 'lucide-react';
 
 export const AdminLayout: React.FC = () => {
   const navigate = useNavigate();
@@ -27,6 +27,11 @@ export const AdminLayout: React.FC = () => {
           <NavLink to="/admin" end className={navLinkClass}>
             <LayoutDashboard size={20} />
             Dashboard
+          </NavLink>
+
+          <NavLink to="/admin/banners" className={navLinkClass}>
+            <Image size={20} />
+            Banners
           </NavLink>
 
           <NavLink to="/admin/pedidos" className={navLinkClass}>

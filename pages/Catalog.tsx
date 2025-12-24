@@ -6,7 +6,7 @@ import { Header } from '../components/Header';
 import { Footer } from '../components/Footer';
 import { KitCard } from '../components/KitCard';
 import { KitModal } from '../components/KitModal';
-import { VideoCarousel } from '../components/VideoCarousel';
+import { BannerCarousel } from '../components/BannerCarousel';
 import { Filter, X } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { AdvancedFilterSidebar } from '../components/AdvancedFilterSidebar';
@@ -40,11 +40,25 @@ export const Catalog: React.FC<CatalogProps> = ({ onLoginSuccess }) => {
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
+      console.log('🔄 Catalog: Carregando kits com filtros:', filters);
       try {
         const data = await api.getKits(filters);
+        console.log('🔍 Catalog: Kits carregados:', data?.length);
+        console.log('📊 Catalog: Total de kits:', data?.length);
+
+        // Verificar se algum kit perdeu images/videos
+        data?.forEach(kit => {
+          if (!kit.images || kit.images.length === 0) {
+            console.warn('⚠️ Kit SEM IMAGENS:', kit.id, kit.name);
+          }
+          if (kit.videos && kit.videos.length > 0) {
+            console.log('📹 Kit COM VÍDEOS:', kit.name, kit.videos.length);
+          }
+        });
+
         setKits(data);
       } catch (error) {
-        console.error("Failed to load data", error);
+        console.error("❌ Failed to load data", error);
       } finally {
         setLoading(false);
       }
@@ -64,7 +78,7 @@ export const Catalog: React.FC<CatalogProps> = ({ onLoginSuccess }) => {
       />
 
       {/* Hero Section */}
-      <VideoCarousel />
+      <BannerCarousel />
 
       <div className="container mx-auto px-4 py-8 flex gap-8 flex-1 relative">
         {/* Sidebar Filters - Desktop */}

@@ -22,6 +22,7 @@ import { OrderList } from './pages/admin/OrderList';
 import { KitManager } from './pages/admin/KitManager';
 import { BulkImport } from './pages/admin/BulkImport';
 import { BrandManager } from './pages/admin/BrandManager';
+import { BannerManager } from './pages/admin/BannerManager';
 import { CategoryManager } from './pages/admin/CategoryManager'; // New Import
 import { ShopProvider } from './context/ShopContext';
 import { CartSidebar } from './components/CartSidebar';
@@ -93,6 +94,7 @@ const App: React.FC = () => {
             }
           >
             <Route index element={<Dashboard />} />
+            <Route path="banners" element={<BannerManager />} />
             <Route path="pedidos" element={<OrderList />} />
             <Route path="stock" element={<StockDashboard />} />
             <Route path="kits" element={<KitManager />} />
