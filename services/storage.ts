@@ -28,10 +28,10 @@ const generateFilePath = (file: File, folder: 'images' | 'videos'): string => {
  * Valida o arquivo antes do upload
  */
 const validateFile = (file: File, type: 'image' | 'video'): string | null => {
-  const maxSize = 10 * 1024 * 1024; // 10MB
+  const maxSize = 50 * 1024 * 1024; // 50MB
 
   if (file.size > maxSize) {
-    return 'Arquivo muito grande. Máximo: 10MB';
+    return 'Arquivo muito grande. Máximo: 50MB';
   }
 
   const isImage = file.type.startsWith('image/');
