@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { Category } from '../types';
 import { AuthModal } from './AuthModal';
 import { useShop } from '../context/ShopContext';
+import { Logo } from './Logo';
 
 interface HeaderProps {
   categories: Category[];
@@ -60,7 +61,7 @@ export const Header: React.FC<HeaderProps> = ({ categories, onSearch, onLoginSuc
   return (
     <>
       <header className="bg-white border-b border-gray-100 sticky top-0 z-30 shadow-[0_2px_10px_rgba(0,0,0,0.05)]">
-        <div className="container mx-auto px-4 h-20 flex items-center justify-between gap-6">
+        <div className="container mx-auto px-4 h-24 md:h-28 flex items-center justify-between gap-6">
           {/* Mobile Menu Button */}
           <button 
             className="lg:hidden text-gray-700 p-2 hover:bg-gray-100 rounded-lg"
@@ -69,18 +70,29 @@ export const Header: React.FC<HeaderProps> = ({ categories, onSearch, onLoginSuc
             <Menu size={24} />
           </button>
 
-          {/* Logo Section */}
-          <a 
-            href="/" 
+          {/* Logo Section - Responsive */}
+          <a
+            href="/"
             onClick={handleLogoClick}
-            className="flex items-center gap-3 group min-w-fit"
+            className="flex items-center min-w-fit group"
           >
-            <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-primary/30 group-hover:scale-105 transition-transform">
-               L
+            {/* Mobile: Logo compacta */}
+            <div className="block md:hidden">
+              <Logo
+                variant="full"
+                size="md"
+                className="transition-transform group-hover:scale-105"
+              />
             </div>
-            <span className="text-xl font-bold text-primary tracking-tight select-none hidden sm:block">
-              Lambari<span className="text-accent-dark">Kids</span>
-            </span>
+
+            {/* Desktop: Logo completa e maior */}
+            <div className="hidden md:block">
+              <Logo
+                variant="full"
+                size="xl"
+                className="transition-transform group-hover:scale-105"
+              />
+            </div>
           </a>
 
           {/* Search Bar */}

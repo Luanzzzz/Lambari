@@ -2,6 +2,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Instagram, Facebook, Send, Mail, Phone, MapPin, CreditCard } from 'lucide-react';
+import { Logo } from './Logo';
 
 export const Footer: React.FC = () => {
   const currentYear = new Date().getFullYear();
@@ -49,9 +50,8 @@ export const Footer: React.FC = () => {
           
           {/* Company Info */}
           <div className="lg:col-span-2 space-y-6">
-            <div className="flex items-center gap-2 mb-4">
-               <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center text-primary font-bold text-xl">L</div>
-               <span className="text-2xl font-bold tracking-tight">Lambari<span className="text-accent">Kids</span></span>
+            <div className="mb-6">
+               <Logo variant="full" size="md" />
             </div>
             <p className="text-blue-100 text-sm leading-relaxed max-w-sm">
               Referência no atacado de roupas infantis. Oferecemos qualidade, variedade e os melhores preços para revendedores em todo o Brasil.

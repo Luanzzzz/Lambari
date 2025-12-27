@@ -4,7 +4,18 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Lambari Kids | Atacado Infantil</title>
+
+    <!-- Favicon e PWA -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/images/brand/lambari-logo-256.png" />
+    <meta name="theme-color" content="#4A6FA5" />
+
+    <!-- Preload da logo para carregamento rápido -->
+    <link rel="preload" as="image" href="/images/brand/lambari-logo-256.png" type="image/png" />
+    <link rel="preload" as="image" href="/images/brand/lambari-logo-512.png" type="image/png" />
+
+    <title>Lambari Kids | Atacado Infantil - Moda de Qualidade</title>
+    <meta name="description" content="Lambari Kids - Referência no atacado de roupas infantis. Qualidade, variedade e os melhores preços para revendedores em todo o Brasil." />
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script>
@@ -13,14 +24,39 @@
           extend: {
             colors: {
               primary: {
-                DEFAULT: '#003366',
-                light: '#004080',
-                dark: '#002244',
+                DEFAULT: '#4A6FA5',
+                light: '#6B8FC4',
+                dark: '#355182',
+                50: '#E8F0F9',
+                100: '#D1E1F3',
+                200: '#A3C3E7',
+                300: '#75A5DB',
+                400: '#4787CF',
+                500: '#4A6FA5',
+                600: '#3B5984',
+                700: '#2C4363',
+                800: '#1E2D42',
+                900: '#0F1621',
               },
               accent: {
-                DEFAULT: '#FFD700',
-                light: '#FFED4E',
-                dark: '#E6C200',
+                DEFAULT: '#F4C430',
+                light: '#F7D563',
+                dark: '#C19E26',
+                50: '#FEF9E7',
+                100: '#FDF3CF',
+                200: '#FBE79F',
+                300: '#F9DB6F',
+                400: '#F7CF3F',
+                500: '#F4C430',
+                600: '#C39D26',
+                700: '#92761D',
+                800: '#614F13',
+                900: '#31270A',
+              },
+              secondary: {
+                DEFAULT: '#F4C430',
+                light: '#F7D563',
+                dark: '#C19E26',
               },
               background: {
                 DEFAULT: '#FFFFFF',

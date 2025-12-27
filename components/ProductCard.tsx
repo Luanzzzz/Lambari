@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, memo, useMemo, useCallback } from 'react';
 import { Product } from '../types';
 import { ChevronLeft, ChevronRight, Eye } from 'lucide-react';
 
@@ -7,33 +7,42 @@ interface ProductCardProps {
   onClick: (product: Product) => void;
 }
 
-export const ProductCard: React.FC<ProductCardProps> = ({ product, onClick }) => {
+export const ProductCard = memo<ProductCardProps>(({ product, onClick }) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
 
-  const nextImage = (e: React.MouseEvent) => {
+  // Memoize event handlers
+  const nextImage = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     setCurrentImageIndex((prev) => (prev + 1) % product.images.length);
-  };
+  }, [product.images.length]);
 
-  const prevImage = (e: React.MouseEvent) => {
+  const prevImage = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     setCurrentImageIndex((prev) => (prev - 1 + product.images.length) % product.images.length);
-  };
+  }, [product.images.length]);
 
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(price);
-  };
+  // Memoize price formatting
+  const formattedPrice = useMemo(() => {
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(product.price);
+  }, [product.price]);
 
   // Extract sizes from stock keys since Product type does not have 'sizes' array
-  const sizes = Object.keys(product.stock);
+  const sizes = useMemo(() => Object.keys(product.stock), [product.stock]);
+
+  const handleClick = useCallback(() => {
+    onClick(product);
+  }, [product, onClick]);
+
+  const handleMouseEnter = useCallback(() => setIsHovered(true), []);
+  const handleMouseLeave = useCallback(() => setIsHovered(false), []);
 
   return (
-    <div 
+    <div
       className="group bg-white rounded-lg border border-gray-200 overflow-hidden hover:border-primary transition-all duration-300 cursor-pointer relative"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-      onClick={() => onClick(product)}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      onClick={handleClick}
     >
       <div className="relative aspect-[4/5] bg-gray-100 overflow-hidden">
         {!product.inStock && (
@@ -81,7 +90,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onClick }) =>
         </div>
         
         <div className="flex items-center justify-between mb-3">
-          <span className="text-accent font-bold text-lg">{formatPrice(product.price)}</span>
+          <span className="text-accent font-bold text-lg">{formattedPrice}</span>
           <div className="flex gap-1">
             {product.colors.slice(0, 3).map((color, idx) => (
               <div 
@@ -109,4 +118,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onClick }) =>
       </div>
     </div>
   );
-};
+}, (prevProps, nextProps) => {
+  // Custom comparison: only re-render if these specific values change
+  return (
+    prevProps.product.id === nextProps.product.id &&
+    prevProps.product.price === nextProps.product.price &&
+    prevProps.product.name === nextProps.product.name
+  );
+});
+
+ProductCard.displayName = 'ProductCard';

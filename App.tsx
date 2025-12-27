@@ -1,8 +1,11 @@
 
-import React, { useState } from 'react';
+import React, { useState, lazy, Suspense } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 
+// ==========================================
+// EAGER LOAD - Customer pages (instant load)
+// ==========================================
 import { Catalog } from './pages/Catalog';
 import { Wishlist } from './pages/Wishlist';
 import { Login } from './pages/Login';
@@ -14,19 +17,34 @@ import { Shipping } from './pages/Shipping';
 import { ReturnPolicy } from './pages/ReturnPolicy';
 import { Contact } from './pages/Contact';
 
+// ==========================================
+// LAZY LOAD - Admin pages (load on demand)
+// Reduces initial bundle by ~300KB
+// ==========================================
 import { AdminLayout } from './layouts/AdminLayout';
-import { Dashboard } from './pages/admin/Dashboard';
-import { StockDashboard } from './pages/admin/StockDashboard';
-import { ProductList } from './pages/admin/ProductList';
-import { OrderList } from './pages/admin/OrderList';
-import { KitManager } from './pages/admin/KitManager';
-import { BulkImport } from './pages/admin/BulkImport';
-import { BrandManager } from './pages/admin/BrandManager';
-import { BannerManager } from './pages/admin/BannerManager';
-import { CategoryManager } from './pages/admin/CategoryManager'; // New Import
+const Dashboard = lazy(() => import('./pages/admin/Dashboard').then(m => ({ default: m.Dashboard })));
+const StockDashboard = lazy(() => import('./pages/admin/StockDashboard').then(m => ({ default: m.StockDashboard })));
+const ProductList = lazy(() => import('./pages/admin/ProductList').then(m => ({ default: m.ProductList })));
+const OrderList = lazy(() => import('./pages/admin/OrderList').then(m => ({ default: m.OrderList })));
+const KitManager = lazy(() => import('./pages/admin/KitManager').then(m => ({ default: m.KitManager })));
+const BulkImport = lazy(() => import('./pages/admin/BulkImport').then(m => ({ default: m.BulkImport })));
+const BrandManager = lazy(() => import('./pages/admin/BrandManager').then(m => ({ default: m.BrandManager })));
+const BannerManager = lazy(() => import('./pages/admin/BannerManager').then(m => ({ default: m.BannerManager })));
+const CategoryManager = lazy(() => import('./pages/admin/CategoryManager').then(m => ({ default: m.CategoryManager })));
+
 import { ShopProvider } from './context/ShopContext';
 import { CartSidebar } from './components/CartSidebar';
 import { ChatWidget } from './components/ChatWidget';
+
+// Loading component for lazy-loaded routes
+const PageLoader = () => (
+  <div className="flex items-center justify-center min-h-screen bg-gray-50">
+    <div className="text-center">
+      <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
+      <p className="text-gray-600 font-medium">Carregando...</p>
+    </div>
+  </div>
+);
 
 // Placeholder components for routes not fully implemented in this demo
 const History = () => <div className="p-4">Histórico do Bot (Em breve)</div>;
@@ -84,7 +102,7 @@ const App: React.FC = () => {
           <Route path="/politica-troca" element={<ReturnPolicy />} />
           <Route path="/contato" element={<Contact />} />
 
-          {/* Protected Admin Routes */}
+          {/* Protected Admin Routes - Lazy loaded */}
           <Route
             path="/admin"
             element={
@@ -93,15 +111,15 @@ const App: React.FC = () => {
               </ProtectedAdminRoute>
             }
           >
-            <Route index element={<Dashboard />} />
-            <Route path="banners" element={<BannerManager />} />
-            <Route path="pedidos" element={<OrderList />} />
-            <Route path="stock" element={<StockDashboard />} />
-            <Route path="kits" element={<KitManager />} />
-            <Route path="products" element={<ProductList />} />
-            <Route path="brands" element={<BrandManager />} />
-            <Route path="import" element={<BulkImport />} />
-            <Route path="categories" element={<CategoryManager />} />
+            <Route index element={<Suspense fallback={<PageLoader />}><Dashboard /></Suspense>} />
+            <Route path="banners" element={<Suspense fallback={<PageLoader />}><BannerManager /></Suspense>} />
+            <Route path="pedidos" element={<Suspense fallback={<PageLoader />}><OrderList /></Suspense>} />
+            <Route path="stock" element={<Suspense fallback={<PageLoader />}><StockDashboard /></Suspense>} />
+            <Route path="kits" element={<Suspense fallback={<PageLoader />}><KitManager /></Suspense>} />
+            <Route path="products" element={<Suspense fallback={<PageLoader />}><ProductList /></Suspense>} />
+            <Route path="brands" element={<Suspense fallback={<PageLoader />}><BrandManager /></Suspense>} />
+            <Route path="import" element={<Suspense fallback={<PageLoader />}><BulkImport /></Suspense>} />
+            <Route path="categories" element={<Suspense fallback={<PageLoader />}><CategoryManager /></Suspense>} />
             <Route path="history" element={<History />} />
           </Route>
         </Routes>

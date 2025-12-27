@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, memo, useMemo, useCallback } from 'react';
 import { Kit, Brand } from '../types';
 import { Eye, ShoppingCart, Heart, Package, Layers, Video } from 'lucide-react';
 import { useShop } from '../context/ShopContext';
@@ -12,38 +12,48 @@ interface KitCardProps {
   brands?: Brand[];
 }
 
-export const KitCard: React.FC<KitCardProps> = ({ kit, onClick, brands }) => {
+export const KitCard = memo<KitCardProps>(({ kit, onClick, brands }) => {
   const { addToCart, toggleWishlist, isInWishlist } = useShop();
   const [isAdding, setIsAdding] = useState(false);
 
-  const getBrandDetails = (brandId: string) => {
-    const brand = brands?.find(b => b.id === brandId);
-    if (!brand) return { name: brandId, color: '#e5e7eb', textColor: '#374151', slug: 'unknown' };
+  // Memoize brand lookup - only recalculate when brands or kit.brand changes
+  const brandInfo = useMemo(() => {
+    const brand = brands?.find(b => b.id === kit.brand);
+    if (!brand) return { name: kit.brand, color: '#e5e7eb', textColor: '#374151', slug: 'unknown' };
     return { name: brand.name, color: brand.color, textColor: brand.textColor, slug: brand.slug };
-  };
+  }, [brands, kit.brand]);
 
-  const brandInfo = getBrandDetails(kit.brand);
   const isFavorited = isInWishlist(kit.id);
-  const displayImage = kit.images && kit.images.length > 0
-    ? kit.images[0]
-    : 'https://placehold.co/600x800?text=Sem+Imagem';
 
-  const handleAddToCart = (e: React.MouseEvent) => {
+  // Memoize display image
+  const displayImage = useMemo(() =>
+    kit.images && kit.images.length > 0
+      ? kit.images[0]
+      : 'https://placehold.co/600x800?text=Sem+Imagem',
+    [kit.images]
+  );
+
+  // Memoize event handlers
+  const handleAddToCart = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     setIsAdding(true);
     addToCart(kit);
     setTimeout(() => setIsAdding(false), 800);
-  };
+  }, [kit, addToCart]);
 
-  const handleToggleWishlist = (e: React.MouseEvent) => {
+  const handleToggleWishlist = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     toggleWishlist(kit);
-  };
+  }, [kit, toggleWishlist]);
+
+  const handleClick = useCallback(() => {
+    onClick(kit);
+  }, [kit, onClick]);
 
   return (
     <div
       className="group bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 flex flex-col h-full border border-gray-100"
-      onClick={() => onClick(kit)}
+      onClick={handleClick}
     >
       {/* Image Section */}
       <div className="relative aspect-[3/4] bg-gray-100 overflow-hidden cursor-pointer">
@@ -141,4 +151,14 @@ export const KitCard: React.FC<KitCardProps> = ({ kit, onClick, brands }) => {
       </div>
     </div>
   );
-};
+}, (prevProps, nextProps) => {
+  // Custom comparison: only re-render if these specific values change
+  return (
+    prevProps.kit.id === nextProps.kit.id &&
+    prevProps.kit.price === nextProps.kit.price &&
+    prevProps.kit.name === nextProps.kit.name &&
+    prevProps.brands === nextProps.brands
+  );
+});
+
+KitCard.displayName = 'KitCard';

@@ -19,7 +19,18 @@
     "test:orders": "tsx scripts/test-orders.ts",
     "test:delete": "tsx scripts/test-delete.ts",
     "debug:delete": "tsx scripts/debug-delete-simple.ts",
-    "test:all": "npm run test:products && npm run test:brands && npm run test:categories && npm run test:kits && npm run test:sellers && npm run test:banners && npm run test:orders"
+    "test:all": "npm run test:products && npm run test:brands && npm run test:categories && npm run test:kits && npm run test:sellers && npm run test:banners && npm run test:orders",
+    "audit:connection": "tsx scripts/audit/01-test-supabase-connection.ts",
+    "audit:products": "tsx scripts/audit/02-test-product-crud.ts",
+    "audit:kits": "tsx scripts/audit/03-test-kit-crud.ts",
+    "audit:jsonb": "tsx scripts/audit/04-test-jsonb-arrays.ts",
+    "audit:transformers": "tsx scripts/audit/05-test-transformers.ts",
+    "audit:all": "tsx scripts/audit/00-run-all-audits.ts",
+    "lint": "eslint . --ext .ts,.tsx",
+    "lint:fix": "eslint . --ext .ts,.tsx --fix",
+    "audit:console": "tsx scripts/audit/find-console-logs.ts",
+    "audit:any": "tsx scripts/audit/find-any-types.ts",
+    "analyze": "vite build && echo Bundle analysis saved to dist/stats.html"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.87.3",
@@ -36,8 +47,13 @@
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
+    "@typescript-eslint/eslint-plugin": "^8.50.1",
+    "@typescript-eslint/parser": "^8.50.1",
     "@vercel/node": "^5.5.15",
     "@vitejs/plugin-react": "^5.0.0",
+    "eslint": "^9.39.2",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "rollup-plugin-visualizer": "^6.0.5",
     "tsx": "^4.19.2",
     "typescript": "~5.8.2",
     "vite": "^6.2.0"
